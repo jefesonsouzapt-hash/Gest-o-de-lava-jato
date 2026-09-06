@@ -44,6 +44,36 @@ function exportadasDeActions(): Exportada[] {
   return encontradas
 }
 
+/** Tudo que um arquivo "use server" exporta, função ou não. */
+function exportsCruos(): { arquivo: string; texto: string }[] {
+  const achados: { arquivo: string; texto: string }[] = []
+
+  for (const arquivo of readdirSync(DIR).filter((f) => f.endsWith(".ts"))) {
+    const fonte = readFileSync(join(DIR, arquivo), "utf8")
+    if (!/^\s*["']use server["']/.test(fonte)) continue
+
+    for (const linha of fonte.split("\n")) {
+      if (/^export\s/.test(linha)) achados.push({ arquivo, texto: linha.trim() })
+    }
+  }
+
+  return achados
+}
+
+describe("um arquivo \"use server\" só exporta função async", () => {
+  // O Next recusa qualquer outro export nesses arquivos e o **build inteiro**
+  // falha — mas o typecheck passa, então o erro só aparece no fim do caminho.
+  // Já perdi um build com um `export const` de configuração aqui.
+  it.each(exportsCruos().map((e) => [`${e.arquivo}: ${e.texto.slice(0, 70)}`, e] as const))(
+    "%s",
+    (_id, e) => {
+      const ehFuncaoAsync = /^export\s+async\s+function\s/.test(e.texto)
+      const ehTipo = /^export\s+type\s/.test(e.texto)
+      expect(ehFuncaoAsync || ehTipo).toBe(true)
+    },
+  )
+})
+
 describe("server actions são endpoints públicos", () => {
   const acoes = exportadasDeActions()
 
@@ -53,9 +83,12 @@ describe("server actions são endpoints públicos", () => {
   })
 
   it.each(acoes.filter((a) => !PUBLICAS.has(a.nome)).map((a) => [`${a.arquivo}:${a.nome}`, a] as const))(
-    "%s começa por um portão de permissão",
+    "%s começa por um portão",
     (_id, acao) => {
-      expect(/await (requirePermission|tryPermission)\(/.test(acao.corpo)).toBe(true)
+      // `requireActor` também é portão: recusa quem não tem sessão. É o certo
+      // para uma ação sobre a própria conta, onde não há permissão a exigir
+      // além de estar autenticado.
+      expect(/await (requirePermission|tryPermission|requireActor)\(/.test(acao.corpo)).toBe(true)
     },
   )
 

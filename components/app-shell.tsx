@@ -64,7 +64,16 @@ export function AppShell({
   user,
 }: {
   children: React.ReactNode
-  user: { name: string; email: string; roleName: string; companyName: string; permissions: readonly string[] }
+  user: {
+    name: string
+    email: string
+    roleName: string
+    companyName: string
+    /** Identidade visual da empresa, definida em Configurações. */
+    brandColor?: string | null
+    logoUrl?: string | null
+    permissions: readonly string[]
+  }
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -92,7 +101,20 @@ export function AppShell({
         aria-label="Navegação principal"
       >
         <div className="flex items-center justify-between">
-          <Logo />
+          {/* O logo da empresa substitui a marca do sistema quando existe: a
+              barra lateral é do lava jato, não nossa. `next/image` não serve —
+              o endereço é digitado pelo dono e não dá para listar os domínios
+              permitidos de antemão. */}
+          {user.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.logoUrl}
+              alt={user.companyName}
+              className="max-h-9 w-auto max-w-[10rem] object-contain"
+            />
+          ) : (
+            <Logo />
+          )}
           <button
             className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent lg:hidden"
             onClick={() => setAberto(false)}
@@ -127,7 +149,10 @@ export function AppShell({
         </nav>
 
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2.5 py-2 text-xs text-sidebar-foreground/60">
-          <span className="size-1.5 shrink-0 rounded-full bg-sidebar-primary" />
+          <span
+            className="size-1.5 shrink-0 rounded-full bg-sidebar-primary"
+            style={user.brandColor ? { backgroundColor: user.brandColor } : undefined}
+          />
           <span className="truncate">{user.companyName}</span>
         </div>
       </aside>
