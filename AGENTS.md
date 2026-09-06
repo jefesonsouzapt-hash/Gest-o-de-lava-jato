@@ -1,87 +1,87 @@
-# AGENTS.md — CRM e Gestão para Lava Jato / Centro de Detalhe
+# AGENTS.md — CRM e Gestão para Lava Jato / Estética Automotiva
 
 Diretrizes obrigatórias para qualquer agente ou pessoa que escreva código neste
-repositório. O que está aqui vence preferências pessoais e hábitos trazidos de
-outros projetos.
+repositório. O que está aqui vence preferência pessoal e hábito trazido de
+outro projeto.
 
 ---
 
-## 1. Localização — Portugal (pt-PT)
+## 1. Localização — Brasil (pt-BR)
 
-Toda a aplicação, sem exceção, usa **Português de Portugal**. Não é português do
-Brasil com acordo ortográfico: é vocabulário de Portugal.
+Toda a aplicação, sem exceção, usa **português do Brasil**.
 
 | Configuração | Valor |
 | --- | --- |
-| `locale` | `pt-PT` |
-| `country` | `PT` |
-| `currency` | `EUR` (€) |
-| `timezone` | `Europe/Lisbon` |
+| `locale` | `pt-BR` |
+| `country` | `BR` |
+| `currency` | `BRL` (R$) |
+| `timezone` | `America/Sao_Paulo` |
 
 ### Vocabulário obrigatório
 
-Usar sempre a coluna da esquerda. A da direita é o erro típico de quem escreve
-em pt-BR e **não passa em revisão**.
+Use sempre a coluna da esquerda. A da direita é vocabulário de Portugal, que
+entrou no projeto numa versão anterior e **não passa em revisão**.
 
 | Usar | Nunca usar |
 | --- | --- |
-| Telemóvel | Celular |
-| Palavra-passe | Senha |
-| Utilizador | Usuário |
-| Ficheiro | Arquivo |
-| Morada | Endereço |
-| Código Postal | CEP |
-| NIF | CPF / CNPJ |
-| Viatura | Carro / Veículo |
-| Matrícula | Placa |
-| Ecrã | Tela |
-| Registo | Registro |
-| Casa de banho | Banheiro |
-| Autocarro | Ônibus |
-| Talão / Fatura | Nota fiscal |
-| Contacto | Contato |
-| Receção | Recepção |
-| Gerir / Gestão | Gerenciar / Gerenciamento |
-| Eliminar | Deletar |
-| Guardar | Salvar |
-| Anterior / Seguinte | Voltar / Avançar |
+| Celular | Telemóvel |
+| Senha | Palavra-passe |
+| Usuário | Utilizador |
+| Arquivo | Ficheiro |
+| Endereço | Morada |
+| CEP | Código Postal |
+| CPF / CNPJ | NIF |
+| Veículo / carro | Viatura |
+| Placa | Matrícula |
+| Tela | Ecrã |
+| Registro | Registo |
+| Nota fiscal | Talão / Fatura |
+| Contato | Contacto |
+| Recepção | Receção |
+| Gerenciar / Gestão | Gerir |
+| Excluir | Eliminar |
+| Salvar | Guardar |
+| Estoque | Stock |
+| Equipe | Equipa |
+| Perfil de acesso | Papel |
 
 ### Termos do negócio
 
-Lava Jato, Centro de Detalhe, Lavador, Detailer, Pista de Lavagem, Box,
-Ficha de Trabalho, Ordem de Serviço, Pacote, Combo, Higienização, Polimento,
-Vitrificação, Estofos, Jantes, Chassi.
+Lava Jato, Estética Automotiva, Lavador, Detailer, Polidor, Pista, Box,
+Ordem de Serviço (O.S.), Pacote, Combo, Higienização, Polimento,
+Vitrificação, Bancos, Rodas, Chassi, Motor.
 
 ### Pagamentos
 
-MB WAY, Multibanco, Transferência Bancária, Dinheiro, Cartão (Débito/Crédito).
-**Nunca** Pix, boleto ou cartão de crédito parcelado à brasileira.
+PIX, Dinheiro, Cartão de Débito, Cartão de Crédito, Transferência, Boleto.
+**Nunca** MB WAY, Multibanco nem Referência Multibanco.
 
-### Grafia europeia
+### Impostos
 
-`receção` (não *recepção*), `contacto` (não *contato*), `facto` (não *fato*),
-`ótimo` mas `óptica`, `deteta` (não *detecta*), `conetar` é erro — usar `ligar`
-ou `conectar` conforme o contexto técnico.
+**ISS** municipal, entre 2 % e 5 % por limite constitucional. Não existe IVA.
 
 ---
 
 ## 2. Formatação de dados
 
-Tudo passa por `lib/locale/`. **Nunca** formatar à mão numa página ou componente.
+Tudo passa por `lib/locale/`. **Nunca** formatar na mão numa página ou
+componente.
 
-- **Moeda:** `formatCurrency(cents)` → `€ 15,00`. Valores monetários são
-  guardados em **cêntimos (inteiro)**, nunca em vírgula flutuante.
-- **Datas:** `DD/MM/AAAA`. **Horas:** `HH:mm` (24h), sempre `Europe/Lisbon`.
-- **Telemóvel:** entrada flexível, normalização interna para `+3519XXXXXXXX`.
-  Exibição `9XX XXX XXX`.
-- **NIF:** 9 dígitos com validação de dígito de controlo (módulo 11).
-- **Código Postal:** `0000-000`.
-- **Matrícula:** formatos `AA-00-AA`, `00-AA-00`, `00-00-AA`, `AA-00-00`.
-  Guardada sem hífenes e em maiúsculas; exibida com hífenes.
-- **IVA:** taxa normal 23 %, intermédia 13 %, reduzida 6 % (Continente).
-  O preço mostrado ao cliente é **com IVA incluído**.
-
----
+- **Moeda:** `formatCurrency(cents)` → `R$ 15,00`. Valores monetários são
+  gravados em **centavos (inteiro)**, nunca em ponto flutuante.
+- **Percentuais:** gravados em **pontos-base** (1250 = 12,50 %), para não
+  perder meio ponto de comissão no arredondamento.
+- **Datas:** `DD/MM/AAAA`. **Horas:** `HH:mm` (24h), sempre
+  `America/Sao_Paulo`.
+- **Telefone:** entrada livre, normalização interna para `+55DDNNNNNNNNN`.
+  Exibição `(11) 98888-7777`. O DDD é conferido contra a lista real.
+- **CPF:** 11 dígitos com os dois verificadores; sequências repetidas são
+  recusadas. **CNPJ:** 14 dígitos com os dois verificadores.
+- **CEP:** `00000-000`. **UF:** conferida contra as 27 siglas.
+- **Placa:** `ABC-1234` (antiga) e `ABC1D23` (Mercosul). Gravada sem hífen e
+  em maiúsculas; exibida com hífen.
+- **Chave PIX:** o tipo é descoberto pelo conteúdo (CPF, CNPJ, e-mail,
+  telefone, aleatória) e a chave é recusada quando não é reconhecível.
 
 ## 3. Regras de código
 
@@ -89,35 +89,39 @@ Tudo passa por `lib/locale/`. **Nunca** formatar à mão numa página ou compone
   `typescript.ignoreBuildErrors` no `next.config`.
 - **Validação com Zod** em toda a fronteira de entrada: server actions, rotas de
   API e parâmetros de URL. O tipo vem do schema (`z.infer`), não o contrário.
+- **Validar sem cortar em silêncio.** 150 % de comissão é recusado com
+  mensagem, não virado em 100 % sem o usuário saber.
 - **Autorização no servidor.** Esconder um botão não é segurança: cada server
   action e cada página protegida verifica a permissão outra vez.
-- **Dinheiro em cêntimos.** `integer`, nunca `float`. Cálculo de IVA e descontos
-  arredonda uma única vez, no fim.
+- **Dinheiro em centavos.** `integer`, nunca `float`. Comissão, desconto e
+  imposto arredondam uma única vez, no fim.
+- **Folha nunca fica negativa.** Vale que não cabe no líquido do mês rola para
+  a folha seguinte; nunca vira salário negativo.
 - **Nada de segredos no repositório.** Só `.env.example` com chaves vazias.
-- **Comentários explicam o porquê**, não o quê. Em português de Portugal.
+- **Comentários explicam o porquê**, não o quê. Em português do Brasil.
 - **Sem dados inventados na interface.** Um valor que não existe mostra estado
   vazio, não um número de exemplo.
 
 ## 4. Stack
 
 Next.js (App Router) · React · TypeScript · Tailwind CSS · Shadcn UI ·
-Lucide · Framer Motion (respeitando `prefers-reduced-motion`) ·
+Lucide · Motion (respeitando `prefers-reduced-motion`) ·
 PostgreSQL + Drizzle ORM · Zod · Vitest · Playwright.
 
 ## 5. Testes
 
-- **Vitest** para regras de negócio: IVA, descontos, fidelização, validadores de
-  NIF/matrícula/telemóvel, cálculo de comissões.
-- **Playwright** para o fluxo completo: chegada da viatura → inspeção → lavagem →
-  entrega → pagamento.
-- Um *bug* corrigido leva sempre um teste que falha antes da correção.
-- `pnpm test` tem de passar antes de qualquer *push*.
+- **Vitest** para regra de negócio: comissão, vale, fechamento de folha, ISS,
+  desconto, fidelidade e os validadores de CPF/CNPJ/placa/telefone/PIX.
+- **Playwright** para o fluxo completo: chegada do veículo → vistoria →
+  lavagem → entrega → pagamento → comissão → folha.
+- Um bug corrigido leva sempre um teste que falha antes da correção.
+- `pnpm test` precisa passar antes de qualquer push.
 
 ## 6. Acessibilidade e desempenho
 
 - WCAG AA: contraste, foco visível, navegação por teclado, `aria-label` em
   botões só de ícone.
-- Estados de carregamento explícitos: *skeleton*, vazio e erro — nunca um ecrã
+- Estados de carregamento explícitos: skeleton, vazio e erro — nunca uma tela
   em branco.
 - Animações respeitam `prefers-reduced-motion`.
 
@@ -125,19 +129,19 @@ PostgreSQL + Drizzle ORM · Zod · Vitest · Playwright.
 
 ## 7. Fluxo de trabalho GitHub
 
-1. **Nunca** fazer commit direto em `main`.
+1. **Nunca** fazer commit direto na `main`.
 2. Cada etapa começa por uma **Issue** descritiva.
-3. Trabalho em *branch* nomeada: `feature/001-setup-inicial`,
-   `fix/002-validacao-nif`.
+3. Trabalho em branch nomeada: `feature/001-fundacao`,
+   `fix/002-validacao-cpf`.
 4. **Pull Request** ligado à Issue: `Closes #001`.
-5. O PR só funde com **lint, typecheck, testes e build** verdes.
+5. O PR só entra com **lint, typecheck, testes e build** verdes.
 
 ### Formato do commit
 
 ```
 tipo(âmbito): resumo no imperativo
 
-Corpo a explicar o porquê da alteração.
+Corpo explicando o porquê da alteração.
 
 Closes #NN
 ```
@@ -147,7 +151,7 @@ Tipos: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`.
 ## 8. CI/CD
 
 GitHub Actions em cada PR: `lint` → `typecheck` → `test` → `build`.
-Deploy de produção na Vercel a partir de `main`.
+Deploy de produção na Vercel a partir da `main`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

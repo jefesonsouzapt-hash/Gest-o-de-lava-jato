@@ -1,5 +1,5 @@
 import { and, count, eq, gte, inArray, lte, sql } from "drizzle-orm"
-import { CalendarClock, Car, Droplets, Euro, Receipt } from "lucide-react"
+import { Banknote, CalendarClock, Car, Droplets, Receipt } from "lucide-react"
 import { db } from "@/lib/db"
 import { payments, workOrders } from "@/lib/db/schema"
 import { requireActorPage } from "@/lib/auth/guard"
@@ -9,14 +9,14 @@ import { StatCard } from "@/components/stat-card"
 import { formatCurrency } from "@/lib/locale/money"
 import { todayISO } from "@/lib/locale/datetime"
 
-/** Estados em que a viatura ainda está no pátio. */
-const NO_PATIO = ["em_fila", "em_lavagem", "acabamento", "detalhe", "controlo_qualidade"] as const
+/** Situações em que o veículo ainda está no pátio.  */
+const NO_PATIO = ["em_fila", "em_lavagem", "acabamento", "detalhe", "controle_qualidade"] as const
 
 export default async function PainelPage() {
   const actor = await requireActorPage()
   const hoje = todayISO()
 
-  const [patio, fichasHoje, recebidoHoje] = await Promise.all([
+  const [patio, ordensHoje, recebidoHoje] = await Promise.all([
     db
       .select({ status: workOrders.status, total: count() })
       .from(workOrders)
@@ -48,27 +48,27 @@ export default async function PainelPage() {
   const noPatio = patio.reduce((soma, linha) => soma + linha.total, 0)
   const emLavagem = patio.find((l) => l.status === "em_lavagem")?.total ?? 0
   const emFila = patio.find((l) => l.status === "em_fila")?.total ?? 0
-  const faturadoHoje = Number.parseInt(fichasHoje[0]?.faturado ?? "0", 10)
+  const faturadoHoje = Number.parseInt(ordensHoje[0]?.faturado ?? "0", 10)
   const recebido = Number.parseInt(recebidoHoje[0]?.recebido ?? "0", 10)
 
   return (
     <>
       <PageHeader
         title="Painel"
-        description="Como está o pátio agora e como corre o dia."
+        description="Como está o pátio agora e como vai o dia."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Viaturas no pátio"
+          label="Veículos no pátio"
           value={noPatio}
           icon={Car}
           money={false}
-          hint={`${emFila} em fila · ${emLavagem} em lavagem`}
+          hint={`${emFila} na fila · ${emLavagem} em lavagem`}
         />
         <StatCard
-          label="Fichas de hoje"
-          value={fichasHoje[0]?.total ?? 0}
+          label="Ordens de hoje"
+          value={ordensHoje[0]?.total ?? 0}
           icon={CalendarClock}
           money={false}
         />
@@ -78,7 +78,7 @@ export default async function PainelPage() {
             <StatCard
               label="Recebido hoje"
               value={recebido}
-              icon={Euro}
+              icon={Banknote}
               tone={faturadoHoje - recebido > 0 ? "warning" : "positive"}
               hint={
                 faturadoHoje - recebido > 0

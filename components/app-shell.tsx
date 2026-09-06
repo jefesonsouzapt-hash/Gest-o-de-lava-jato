@@ -11,9 +11,11 @@ import {
   Car,
   CircleUser,
   ClipboardList,
+  HandCoins,
   LayoutDashboard,
   LogOut,
   Menu,
+  ReceiptText,
   Settings,
   SprayCan,
   Users,
@@ -38,21 +40,23 @@ import type { Permission } from "@/lib/auth/permissions"
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; permission?: Permission }
 
-// A permissão de cada entrada. Esconder o menu é só cortesia — a página do
-// servidor volta a verificar, porque o endereço pode ser escrito à mão.
+// A permissão de cada item. Esconder o menu é só cortesia — a página no
+// servidor verifica de novo, porque o endereço pode ser digitado na mão.
 const NAV: NavItem[] = [
   { href: "/painel", label: "Painel", icon: LayoutDashboard },
-  { href: "/rececao", label: "Receção e fila", icon: CalendarClock, permission: "rececao.gerir" },
-  { href: "/fichas", label: "Fichas de trabalho", icon: ClipboardList, permission: "ficha.ver" },
+  { href: "/recepcao", label: "Recepção e fila", icon: CalendarClock, permission: "recepcao.gerir" },
+  { href: "/ordens", label: "Ordens de serviço", icon: ClipboardList, permission: "ordem.ver" },
   { href: "/clientes", label: "Clientes", icon: Users, permission: "cliente.ver" },
-  { href: "/viaturas", label: "Viaturas", icon: Car, permission: "cliente.ver" },
+  { href: "/veiculos", label: "Veículos", icon: Car, permission: "cliente.ver" },
   { href: "/servicos", label: "Serviços", icon: SprayCan, permission: "servico.ver" },
-  { href: "/consumiveis", label: "Consumíveis", icon: Boxes, permission: "stock.ver" },
-  { href: "/equipa", label: "Equipa", icon: UserRound, permission: "equipa.ver" },
+  { href: "/estoque", label: "Estoque", icon: Boxes, permission: "estoque.ver" },
+  { href: "/equipe", label: "Equipe", icon: UserRound, permission: "equipe.ver" },
+  { href: "/vales", label: "Vales e adiantamentos", icon: HandCoins, permission: "vale.gerir" },
+  { href: "/folha", label: "Folha de pagamento", icon: ReceiptText, permission: "folha.ver" },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3, permission: "relatorio.ver" },
   { href: "/caixa", label: "Caixa", icon: Wallet, permission: "relatorio.financeiro" },
-  { href: "/perfil", label: "A minha conta", icon: CircleUser },
-  { href: "/definicoes", label: "Definições", icon: Settings, permission: "empresa.gerir" },
+  { href: "/minha-conta", label: "Minha conta", icon: CircleUser },
+  { href: "/configuracoes", label: "Configurações", icon: Settings, permission: "empresa.gerir" },
 ]
 
 export function AppShell({
@@ -157,8 +161,8 @@ export function AppShell({
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {/* O rótulo é um `Menu.GroupLabel` do Base UI e rebenta fora
-                    de um `Menu.Group` — e o erro leva a página inteira. */}
+                {/* O rótulo é um `Menu.GroupLabel` do Base UI e quebra fora de
+                    um `Menu.Group` — e o erro derruba a página inteira. */}
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="flex flex-col">
                     <span className="truncate font-semibold">{user.name}</span>
@@ -168,17 +172,18 @@ export function AppShell({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {/* Navegação por `router.push` e não por `render={<Link/>}`:
-                    o Base UI rebenta ao compor o item do menu com o Link do
-                    Next (erro #31) e leva a página inteira com ele. */}
-                <DropdownMenuItem onClick={() => router.push("/perfil")}>
-                  <CircleUser className="size-4" />A minha conta
+                    o Base UI quebra ao compor o item de menu com o Link do
+                    Next e leva a página inteira junto. */}
+                <DropdownMenuItem onClick={() => router.push("/minha-conta")}>
+                  <CircleUser className="size-4" />
+                  Minha conta
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => startTransition(async () => void (await logout()))}
                   className="text-destructive focus:text-destructive"
                 >
                   <LogOut className="size-4" />
-                  Terminar sessão
+                  Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

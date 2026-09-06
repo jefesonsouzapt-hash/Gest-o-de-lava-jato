@@ -13,11 +13,12 @@ import {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 /**
- * Sincroniza o catálogo de permissões da base de dados com o do código.
+ * Sincroniza o catálogo de permissões do banco com o do código.
  *
- * O código manda: uma permissão nova aparece aqui, uma removida desaparece.
- * A remoção apaga também as concessões — uma permissão que já não existe não
- * pode continuar gravada num papel e a abrir portas se o nome for reutilizado.
+ * O código manda: uma permissão nova aparece aqui, uma removida some. A
+ * remoção apaga junto as concessões — uma permissão que não existe mais não
+ * pode continuar gravada num perfil e voltar a abrir portas se o nome for
+ * reaproveitado.
  */
 export async function syncPermissionCatalog(tx: Tx = db as unknown as Tx): Promise<void> {
   await tx
@@ -28,9 +29,9 @@ export async function syncPermissionCatalog(tx: Tx = db as unknown as Tx): Promi
       set: { description: sql`excluded.description` },
     })
 
-  // `notInArray` e não um `sql` à mão com ALL(): o drizzle expande um array de
-  // JavaScript em parâmetros soltos ($1, $2, …), e o Postgres recusa isso do
-  // lado direito de ALL() com "requires array on right side".
+  // `notInArray` e não um `sql` na mão com ALL(): o drizzle expande um array
+  // de JavaScript em parâmetros soltos ($1, $2, …), e o Postgres recusa isso
+  // do lado direito de ALL() com "requires array on right side".
   const obsoletas = await tx
     .select({ key: permissions.key })
     .from(permissions)
@@ -42,7 +43,7 @@ export async function syncPermissionCatalog(tx: Tx = db as unknown as Tx): Promi
   }
 }
 
-/** Cria os cinco papéis de sistema de uma empresa com as suas permissões. */
+/** Cria os cinco perfis de sistema de uma empresa com as permissões deles. */
 export async function seedRoles(tx: Tx, companyId: number): Promise<Record<RoleKey, number>> {
   const criados = {} as Record<RoleKey, number>
 
@@ -58,7 +59,7 @@ export async function seedRoles(tx: Tx, companyId: number): Promise<Record<RoleK
 
     criados[key] = papel.id
 
-    // Reescreve as concessões a partir do código: um papel de sistema não
+    // Reescreve as concessões a partir do código: um perfil de sistema não
     // acumula permissões antigas quando a matriz muda.
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, papel.id))
     await tx.insert(rolePermissions).values(
@@ -69,9 +70,9 @@ export async function seedRoles(tx: Tx, companyId: number): Promise<Record<RoleK
   return criados
 }
 
-// Cardápio inicial com preços de referência do mercado português, para a
-// aplicação não abrir vazia. Preços em cêntimos, com IVA incluído, para a
-// tipologia média; tudo editável depois em Serviços.
+// Cardápio inicial com preços de referência do mercado brasileiro, para o
+// sistema não abrir vazio. Valores em centavos, para o porte médio (hatch);
+// tudo editável depois em Serviços.
 const CATALOGO_INICIAL: {
   categoria: string
   nome: string
@@ -84,18 +85,18 @@ const CATALOGO_INICIAL: {
 }[] = [
   {
     categoria: "Lavagem",
-    nome: "Lavagem Express",
-    descricao: "Exterior e jantes, com secagem.",
-    precoCents: 1200,
-    minutos: 15,
+    nome: "Lavagem Simples",
+    descricao: "Externa, rodas e secagem.",
+    precoCents: 3_500,
+    minutos: 25,
     comissaoBps: 3000,
   },
   {
     categoria: "Lavagem",
     nome: "Lavagem Completa",
-    descricao: "Exterior, interior, aspiração e cera express.",
-    precoCents: 2500,
-    minutos: 45,
+    descricao: "Externa, interna, aspiração e cera rápida.",
+    precoCents: 6_000,
+    minutos: 50,
     comissaoBps: 3000,
     pacote: true,
   },
@@ -103,7 +104,7 @@ const CATALOGO_INICIAL: {
     categoria: "Lavagem",
     nome: "Lavagem a Seco",
     descricao: "Sem água corrente, com produto específico.",
-    precoCents: 2000,
+    precoCents: 5_000,
     minutos: 40,
     comissaoBps: 3000,
   },
@@ -111,7 +112,7 @@ const CATALOGO_INICIAL: {
     categoria: "Lavagem",
     nome: "Lavagem de Motor",
     descricao: "Limpeza do compartimento do motor.",
-    precoCents: 2500,
+    precoCents: 4_500,
     minutos: 30,
     comissaoBps: 3500,
     fidelidade: false,
@@ -120,7 +121,7 @@ const CATALOGO_INICIAL: {
     categoria: "Estética",
     nome: "Enceramento",
     descricao: "Aplicação de cera de proteção.",
-    precoCents: 4500,
+    precoCents: 9_000,
     minutos: 60,
     comissaoBps: 3500,
     fidelidade: false,
@@ -129,7 +130,7 @@ const CATALOGO_INICIAL: {
     categoria: "Estética",
     nome: "Cristalização de Vidros",
     descricao: "Repelente de água aplicado nos vidros.",
-    precoCents: 3500,
+    precoCents: 12_000,
     minutos: 45,
     comissaoBps: 3500,
     fidelidade: false,
@@ -138,7 +139,7 @@ const CATALOGO_INICIAL: {
     categoria: "Polimento",
     nome: "Polimento Comercial",
     descricao: "Correção leve de riscos e brilho na pintura.",
-    precoCents: 12000,
+    precoCents: 35_000,
     minutos: 180,
     comissaoBps: 4000,
     fidelidade: false,
@@ -147,25 +148,25 @@ const CATALOGO_INICIAL: {
     categoria: "Polimento",
     nome: "Vitrificação Cerâmica",
     descricao: "Proteção cerâmica de longa duração.",
-    precoCents: 45000,
+    precoCents: 120_000,
     minutos: 480,
     comissaoBps: 4000,
     fidelidade: false,
   },
   {
     categoria: "Higienização",
-    nome: "Detalhe Interior",
-    descricao: "Estofos, carpete, tejadilho e forros.",
-    precoCents: 9000,
+    nome: "Higienização Interna",
+    descricao: "Bancos, carpete, teto e forros.",
+    precoCents: 25_000,
     minutos: 180,
     comissaoBps: 4000,
     fidelidade: false,
   },
   {
     categoria: "Higienização",
-    nome: "Higienização do Ar Condicionado",
-    descricao: "Limpeza do sistema e substituição do filtro de habitáculo.",
-    precoCents: 3500,
+    nome: "Higienização do Ar-condicionado",
+    descricao: "Limpeza do sistema e troca do filtro de cabine.",
+    precoCents: 12_000,
     minutos: 40,
     comissaoBps: 3500,
     fidelidade: false,
@@ -199,7 +200,6 @@ export async function seedCatalog(tx: Tx, companyId: number): Promise<void> {
         description: s.descricao,
         isPackage: s.pacote ?? false,
         basePriceCents: s.precoCents,
-        vatRate: 23,
         durationMinutes: s.minutos,
         commissionBps: s.comissaoBps,
         countsForLoyalty: s.fidelidade ?? true,
@@ -216,7 +216,7 @@ export async function seedCatalog(tx: Tx, companyId: number): Promise<void> {
     .onConflictDoNothing()
 }
 
-/** Há alguma conta criada? É o que decide entre arranque e início de sessão. */
+/** Existe alguma conta? É o que decide entre primeiro acesso e login. */
 export async function hasAnyUser(): Promise<boolean> {
   const [linha] = await db.select({ id: users.id }).from(users).limit(1)
   return Boolean(linha)

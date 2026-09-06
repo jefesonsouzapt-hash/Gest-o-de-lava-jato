@@ -8,7 +8,7 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" })
 export const metadata: Metadata = {
   title: "Gestão de Lava Jato",
   description:
-    "CRM e gestão operacional para lava jatos e centros de detalhe automóvel: receção, pistas, fichas de trabalho, consumíveis e faturação.",
+    "CRM e gestão para lava jato e estética automotiva: recepção, pistas, ordens de serviço, estoque, comissões e folha de pagamento.",
 }
 
 export const viewport: Viewport = {
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-PT" className={`${manrope.variable} bg-background`}>
+    <html lang="pt-BR" className={`${manrope.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-center" />

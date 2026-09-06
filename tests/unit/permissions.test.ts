@@ -16,9 +16,9 @@ function actor(roleKey: string): Actor {
 }
 
 describe("catálogo", () => {
-  it("não tem chaves repetidas em nenhum papel", () => {
-    for (const papel of ROLE_KEYS) {
-      const lista = ROLE_PERMISSIONS[papel]
+  it("não tem chaves repetidas em nenhum perfil", () => {
+    for (const perfil of ROLE_KEYS) {
+      const lista = ROLE_PERMISSIONS[perfil]
       expect(new Set(lista).size).toBe(lista.length)
     }
   })
@@ -26,8 +26,8 @@ describe("catálogo", () => {
   it("só concede permissões que existem no catálogo", () => {
     // Uma chave escrita à mão com erro passaria despercebida e a verificação
     // devolveria false para sempre, sem ninguém dar por isso.
-    for (const papel of ROLE_KEYS) {
-      for (const permissao of ROLE_PERMISSIONS[papel]) {
+    for (const perfil of ROLE_KEYS) {
+      for (const permissao of ROLE_PERMISSIONS[perfil]) {
         expect(ALL_PERMISSIONS).toContain(permissao)
       }
     }
@@ -47,97 +47,107 @@ describe("separação de funções", () => {
   it("o lavador não toca em dinheiro nem em dados de cliente", () => {
     const lavador = actor("lavador")
     expect(can(lavador, "pagamento.receber")).toBe(false)
-    expect(can(lavador, "pagamento.anular")).toBe(false)
+    expect(can(lavador, "pagamento.estornar")).toBe(false)
     expect(can(lavador, "cliente.ver")).toBe(false)
     expect(can(lavador, "relatorio.financeiro")).toBe(false)
-    expect(can(lavador, "utilizador.gerir")).toBe(false)
+    expect(can(lavador, "usuario.gerir")).toBe(false)
+    // Nem a própria folha: o lavador não vê o salário de ninguém, inclusive
+    // o dos colegas.
+    expect(can(lavador, "folha.ver")).toBe(false)
+    expect(can(lavador, "comissao.ver")).toBe(false)
   })
 
-  it("o lavador trabalha a ficha e regista a inspeção", () => {
+  it("o lavador trabalha a ordem e registra a vistoria", () => {
     const lavador = actor("lavador")
-    expect(can(lavador, "ficha.ver")).toBe(true)
-    expect(can(lavador, "ficha.avancar")).toBe(true)
-    expect(can(lavador, "inspecao.registar")).toBe(true)
+    expect(can(lavador, "ordem.ver")).toBe(true)
+    expect(can(lavador, "ordem.avancar")).toBe(true)
+    expect(can(lavador, "vistoria.registrar")).toBe(true)
   })
 
-  it("o rececionista recebe mas não anula um recebimento", () => {
-    // Quem cobra não desfaz a própria cobrança: anular é do gerente.
-    const rececionista = actor("rececionista")
-    expect(can(rececionista, "pagamento.receber")).toBe(true)
-    expect(can(rececionista, "pagamento.anular")).toBe(false)
+  it("o recepcionista recebe mas não estorna um recebimento", () => {
+    // Quem cobra não desfaz a própria cobrança: estornar é do gerente.
+    const recepcionista = actor("recepcionista")
+    expect(can(recepcionista, "pagamento.receber")).toBe(true)
+    expect(can(recepcionista, "pagamento.estornar")).toBe(false)
   })
 
-  it("o rececionista não gere o catálogo nem a equipa", () => {
-    const rececionista = actor("rececionista")
-    expect(can(rececionista, "servico.gerir")).toBe(false)
-    expect(can(rececionista, "equipa.gerir")).toBe(false)
-    expect(can(rececionista, "empresa.gerir")).toBe(false)
+  it("o recepcionista não gere o catálogo nem a equipa", () => {
+    const recepcionista = actor("recepcionista")
+    expect(can(recepcionista, "servico.gerir")).toBe(false)
+    expect(can(recepcionista, "equipe.gerir")).toBe(false)
+    expect(can(recepcionista, "empresa.gerir")).toBe(false)
   })
 
-  it("o gerente vê o resultado do negócio mas não gere acessos", () => {
+  it("o gerente apura a folha mas não a fecha, nem gere acessos", () => {
     const gerente = actor("gerente")
     expect(can(gerente, "relatorio.financeiro")).toBe(true)
-    expect(can(gerente, "pagamento.anular")).toBe(true)
-    expect(can(gerente, "equipa.gerir")).toBe(true)
-    // Criar contas e mudar papéis é do administrador.
-    expect(can(gerente, "utilizador.gerir")).toBe(false)
+    expect(can(gerente, "pagamento.estornar")).toBe(true)
+    expect(can(gerente, "equipe.gerir")).toBe(true)
+    // Apurar é do gerente; fechar a folha é do dono — é o ato que vira
+    // obrigação de pagamento.
+    expect(can(gerente, "folha.ver")).toBe(true)
+    expect(can(gerente, "vale.gerir")).toBe(true)
+    expect(can(gerente, "folha.fechar")).toBe(false)
+    // Criar contas e mudar perfis é do administrador.
+    expect(can(gerente, "usuario.gerir")).toBe(false)
     expect(can(gerente, "auditoria.ver")).toBe(false)
   })
 
-  it("só o administrador consulta a auditoria e gere utilizadores", () => {
-    for (const papel of ROLE_KEYS) {
-      const esperado = papel === "admin"
-      expect(can(actor(papel), "auditoria.ver")).toBe(esperado)
-      expect(can(actor(papel), "utilizador.gerir")).toBe(esperado)
-      expect(can(actor(papel), "empresa.gerir")).toBe(esperado)
+  it("só o administrador consulta a auditoria, gere contas e fecha a folha", () => {
+    for (const perfil of ROLE_KEYS) {
+      const esperado = perfil === "admin"
+      expect(can(actor(perfil), "auditoria.ver")).toBe(esperado)
+      expect(can(actor(perfil), "usuario.gerir")).toBe(esperado)
+      expect(can(actor(perfil), "empresa.gerir")).toBe(esperado)
+      expect(can(actor(perfil), "folha.fechar")).toBe(esperado)
     }
   })
 })
 
 describe("negação por omissão", () => {
   it("nega quando não há ator autenticado", () => {
-    expect(can(null, "ficha.ver")).toBe(false)
-    expect(can(undefined, "ficha.ver")).toBe(false)
-    expect(canAny(null, ["ficha.ver", "cliente.ver"])).toBe(false)
+    expect(can(null, "ordem.ver")).toBe(false)
+    expect(can(undefined, "ordem.ver")).toBe(false)
+    expect(canAny(null, ["ordem.ver", "cliente.ver"])).toBe(false)
   })
 
   it("nega uma chave que não existe no catálogo", () => {
     // Uma permissão apagada do catálogo mas ainda gravada na base de dados não
     // pode continuar a abrir portas.
-    const inventada = "ficha.apagar_tudo" as Permission
+    const inventada = "ordem.apagar_tudo" as Permission
     expect(can(actor("admin"), inventada)).toBe(false)
   })
 
-  it("nega um papel desconhecido", () => {
+  it("nega um perfil desconhecido", () => {
     const intruso = actor("superadmin")
     expect(intruso.permissions).toHaveLength(0)
-    expect(can(intruso, "ficha.ver")).toBe(false)
+    expect(can(intruso, "ordem.ver")).toBe(false)
   })
 
-  it("ignora permissões gravadas que não estão no papel", () => {
+  it("ignora permissões gravadas que não estão no perfil", () => {
     // O ator traz a lista que veio da base de dados; `can` não volta a olhar
-    // para o papel, para que um papel personalizado funcione na mesma.
+    // para o perfil, para que um perfil personalizado funcione na mesma.
     const personalizado: Actor = {
       userId: 2,
       companyId: 1,
       roleKey: "personalizado",
-      permissions: ["ficha.ver"],
+      permissions: ["ordem.ver"],
     }
-    expect(can(personalizado, "ficha.ver")).toBe(true)
-    expect(can(personalizado, "ficha.editar")).toBe(false)
+    expect(can(personalizado, "ordem.ver")).toBe(true)
+    expect(can(personalizado, "ordem.editar")).toBe(false)
   })
 })
 
 describe("combinações", () => {
   it("canAll exige todas", () => {
-    const rececionista = actor("rececionista")
-    expect(canAll(rececionista, ["ficha.ver", "cliente.ver"])).toBe(true)
-    expect(canAll(rececionista, ["ficha.ver", "pagamento.anular"])).toBe(false)
+    const recepcionista = actor("recepcionista")
+    expect(canAll(recepcionista, ["ordem.ver", "cliente.ver"])).toBe(true)
+    expect(canAll(recepcionista, ["ordem.ver", "pagamento.estornar"])).toBe(false)
   })
 
   it("canAny basta uma", () => {
     const lavador = actor("lavador")
-    expect(canAny(lavador, ["cliente.ver", "ficha.ver"])).toBe(true)
+    expect(canAny(lavador, ["cliente.ver", "ordem.ver"])).toBe(true)
     expect(canAny(lavador, ["cliente.ver", "pagamento.receber"])).toBe(false)
   })
 

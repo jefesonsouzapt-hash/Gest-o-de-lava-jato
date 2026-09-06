@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
 import { login, setupFirstCompany, type FormState } from "@/lib/actions/auth"
 
-/** Botão que sabe sozinho quando o formulário está a ser submetido. */
+/** Botão que sabe sozinho quando o formulário está sendo enviado. */
 function SubmitButton({ children, icon: Icon }: { children: React.ReactNode; icon: typeof LogIn }) {
   const { pending } = useFormStatus()
   return (
@@ -34,8 +34,8 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
   const [estado, formAction] = useActionState<FormState, FormData>(acao, null)
   const erros = estado && !estado.ok ? estado.errors : {}
   // O React 19 limpa um formulário não controlado quando a ação termina. Sem
-  // devolver os valores, um dígito errado no NIF apagava tudo o que já tinha
-  // sido escrito.
+  // devolver os valores, um dígito errado no CNPJ apagava tudo o que já tinha
+  // sido digitado.
   const valores = estado && !estado.ok ? (estado.values ?? {}) : {}
 
   return (
@@ -43,12 +43,12 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
       <div className="mb-8 flex flex-col items-center text-center">
         <Logo className="mb-6" />
         <h1 className="text-2xl font-bold tracking-tight text-balance">
-          {mode === "entrar" ? "Iniciar sessão" : "Configurar o lava jato"}
+          {mode === "entrar" ? "Entrar" : "Configurar o lava jato"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground text-pretty">
           {mode === "entrar"
-            ? "Entre com o email e a palavra-passe da sua conta."
-            : "É a primeira vez que abre o sistema. Crie a empresa e a sua conta de administrador."}
+            ? "Entre com o e-mail e a senha da sua conta."
+            : "É a primeira vez que o sistema abre. Cadastre a empresa e a sua conta de administrador."}
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
                 id="companyName"
                 name="companyName"
                 defaultValue={valores.companyName ?? ""}
-                placeholder="Ex.: Detail Center Porto"
+                placeholder="Ex.: Lava Jato do Zé"
                 className="h-11"
                 maxLength={120}
                 required
@@ -72,19 +72,19 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="companyNif">
-                NIF da empresa <span className="font-normal text-muted-foreground">(opcional)</span>
+              <Label htmlFor="companyCnpj">
+                CNPJ <span className="font-normal text-muted-foreground">(opcional)</span>
               </Label>
               <Input
-                id="companyNif"
-                name="companyNif"
-                defaultValue={valores.companyNif ?? ""}
+                id="companyCnpj"
+                name="companyCnpj"
+                defaultValue={valores.companyCnpj ?? ""}
                 inputMode="numeric"
-                placeholder="500 000 000"
+                placeholder="00.000.000/0001-00"
                 className="h-11"
-                aria-invalid={Boolean(erros.companyNif)}
+                aria-invalid={Boolean(erros.companyCnpj)}
               />
-              <ErrorText message={erros.companyNif} />
+              <ErrorText message={erros.companyCnpj} />
             </div>
 
             <hr className="my-1 border-border" />
@@ -93,13 +93,13 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
 
         {mode === "arranque" && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name">O seu nome</Label>
+            <Label htmlFor="name">Seu nome</Label>
             <Input
               id="name"
               name="name"
               defaultValue={valores.name ?? ""}
               autoComplete="name"
-              placeholder="Nome e apelido"
+              placeholder="Nome e sobrenome"
               className="h-11"
               maxLength={120}
               required
@@ -110,14 +110,14 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
         )}
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">E-mail</Label>
           <Input
             id="email"
             name="email"
             defaultValue={valores.email ?? ""}
             type="email"
             autoComplete="email"
-            placeholder="voce@exemplo.pt"
+            placeholder="voce@exemplo.com.br"
             className="h-11"
             required
             autoFocus={mode === "entrar"}
@@ -127,7 +127,7 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Palavra-passe</Label>
+          <Label htmlFor="password">Senha</Label>
           <Input
             id="password"
             name="password"
@@ -140,7 +140,7 @@ export function AuthForm({ mode }: { mode: "entrar" | "arranque" }) {
           <ErrorText message={erros.password} />
           {mode === "arranque" && !erros.password && (
             <p className="text-xs text-muted-foreground">
-              Pelo menos 12 caracteres. Uma frase que só você saiba resiste melhor do que um código curto.
+              Pelo menos 12 caracteres. Uma frase que só você saiba resiste melhor do que uma senha curta.
             </p>
           )}
         </div>

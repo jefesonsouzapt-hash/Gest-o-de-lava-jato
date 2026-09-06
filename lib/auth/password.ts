@@ -1,13 +1,13 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from "node:crypto"
 import { promisify } from "node:util"
 
-// Derivação de chave com scrypt, da biblioteca do Node. Não é preciso bcrypt
-// nem argon2 nativos: o scrypt está na plataforma, corre no runtime Node da
-// Vercel sem compilação, e é uma função deliberadamente lenta e cara em
-// memória — que é exatamente o que trava um ataque de força bruta.
+// Derivação de chave com scrypt, da biblioteca do Node. Não precisa de bcrypt
+// nem argon2 nativos: o scrypt já vem na plataforma, roda no runtime Node da
+// Vercel sem compilação, e é uma função de propósito lenta e cara em memória —
+// que é exatamente o que trava um ataque de força bruta.
 
 // `promisify` perde a sobrecarga que aceita opções, por isso o tipo é dado à
-// mão — sem isto não dava para afinar o custo nem o limite de memória.
+// mão — sem isso não dava para ajustar o custo nem o limite de memória.
 const scrypt = promisify(scryptCallback) as (
   password: string,
   salt: Buffer,
@@ -22,17 +22,17 @@ const PARALLELISM = 1
 const KEY_LENGTH = 64
 const SALT_LENGTH = 16
 
-// O scrypt do Node recusa-se a alocar mais do que o limite por omissão (32 MB)
-// e N=65536 precisa de ~64 MB. Sem isto, o hash falha em produção.
+// O scrypt do Node se recusa a alocar mais que o limite padrão (32 MB), e
+// N=65536 precisa de ~64 MB. Sem isso, o hash falha em produção.
 const MAX_MEMORY = 128 * 1024 * 1024
 
 /** Prefixo do formato, para reconhecer o algoritmo se um dia mudar. */
 const PREFIX = "scrypt"
 
 /**
- * Devolve `scrypt$N$r$p$salt$hash`, tudo o que é preciso para verificar mais
- * tarde. Guardar os parâmetros junto do hash permite subir o custo no futuro
- * sem invalidar as palavras-passe já criadas.
+ * Devolve `scrypt$N$r$p$salt$hash`, tudo que é preciso para conferir depois.
+ * Guardar os parâmetros junto do hash permite subir o custo no futuro sem
+ * invalidar as senhas já criadas.
  */
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_LENGTH)
@@ -47,11 +47,11 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Confirma uma palavra-passe contra o hash guardado.
+ * Confere uma senha contra o hash gravado.
  *
- * A comparação é em tempo constante: um `===` normal devolve mais depressa
- * quando os primeiros bytes diferem, e essa diferença de tempo chega para
- * descobrir o hash byte a byte.
+ * A comparação é em tempo constante: um `===` comum retorna mais rápido quando
+ * os primeiros bytes diferem, e essa diferença de tempo basta para descobrir o
+ * hash byte a byte.
  */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const partes = String(stored ?? "").split("$")
@@ -82,7 +82,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
       maxmem: MAX_MEMORY,
     }))
   } catch {
-    // Parâmetros absurdos num hash corrompido fazem o scrypt rebentar.
+    // Parâmetros absurdos num hash corrompido fazem o scrypt estourar.
     return false
   }
 
@@ -90,15 +90,14 @@ export async function verifyPassword(password: string, stored: string): Promise<
 }
 
 /**
- * Hash descartável, para gastar o mesmo tempo quando o email não existe.
+ * Hash descartável, para gastar o mesmo tempo quando o e-mail não existe.
  *
- * Sem isto, um pedido de início de sessão devolve depressa para email
- * desconhecido e devagar para email conhecido — e essa diferença permite
- * enumerar quem tem conta.
+ * Sem isso, o login responde rápido para e-mail desconhecido e devagar para
+ * e-mail conhecido — e essa diferença permite descobrir quem tem conta.
  */
 export async function fakeVerify(): Promise<void> {
   await verifyPassword(
-    "palavra-passe-descartavel",
+    "senha-descartavel",
     `${PREFIX}$${COST}$${BLOCK_SIZE}$${PARALLELISM}$${randomBytes(SALT_LENGTH).toString("base64")}$${randomBytes(
       KEY_LENGTH,
     ).toString("base64")}`,

@@ -1,9 +1,108 @@
 {
-  "id": "7a9d0369-01a9-403c-9ab0-1498b305f9e5",
+  "id": "e17b15fe-1d02-4b29-966c-eceb459a7d4c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.advance_deductions": {
+      "name": "advance_deductions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "advance_id": {
+          "name": "advance_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payroll_entry_id": {
+          "name": "payroll_entry_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "competence_month": {
+          "name": "competence_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "advance_deductions_advance_idx": {
+          "name": "advance_deductions_advance_idx",
+          "columns": [
+            {
+              "expression": "advance_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "advance_deductions_advance_month_key": {
+          "name": "advance_deductions_advance_month_key",
+          "columns": [
+            {
+              "expression": "advance_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "competence_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.appointments": {
       "name": "appointments",
       "schema": "",
@@ -245,6 +344,168 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.commission_entries": {
+      "name": "commission_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "work_order_id": {
+          "name": "work_order_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "work_order_item_id": {
+          "name": "work_order_item_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_cents": {
+          "name": "base_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "kind": {
+          "name": "kind",
+          "type": "commission_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'percentual'"
+        },
+        "bps": {
+          "name": "bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "fixed_cents": {
+          "name": "fixed_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "competence_month": {
+          "name": "competence_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reversed_at": {
+          "name": "reversed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reverse_reason": {
+          "name": "reverse_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "commission_entries_staff_month_idx": {
+          "name": "commission_entries_staff_month_idx",
+          "columns": [
+            {
+              "expression": "staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "competence_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "commission_entries_order_idx": {
+          "name": "commission_entries_order_idx",
+          "columns": [
+            {
+              "expression": "work_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "commission_entries_item_key": {
+          "name": "commission_entries_item_key",
+          "columns": [
+            {
+              "expression": "work_order_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.companies": {
       "name": "companies",
       "schema": "",
@@ -261,8 +522,20 @@
           "primaryKey": false,
           "notNull": true
         },
-        "nif": {
-          "name": "nif",
+        "legal_name": {
+          "name": "legal_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cnpj": {
+          "name": "cnpj",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "municipal_registration": {
+          "name": "municipal_registration",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -273,32 +546,38 @@
           "primaryKey": false,
           "notNull": false
         },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "email": {
           "name": "email",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "address": {
-          "name": "address",
+        "cep": {
+          "name": "cep",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "postal_code": {
-          "name": "postal_code",
+        "street": {
+          "name": "street",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "locality": {
-          "name": "locality",
+        "street_number": {
+          "name": "street_number",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "municipality": {
-          "name": "municipality",
+        "complement": {
+          "name": "complement",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -308,6 +587,25 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uf": {
+          "name": "uf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iss_bps": {
+          "name": "iss_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 500
         },
         "logo_url": {
           "name": "logo_url",
@@ -366,11 +664,11 @@
         }
       },
       "indexes": {
-        "companies_nif_key": {
-          "name": "companies_nif_key",
+        "companies_cnpj_key": {
+          "name": "companies_cnpj_key",
           "columns": [
             {
-              "expression": "nif",
+              "expression": "cnpj",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -423,26 +721,44 @@
           "primaryKey": false,
           "notNull": false
         },
-        "nif": {
-          "name": "nif",
+        "document": {
+          "name": "document",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "address": {
-          "name": "address",
+        "cep": {
+          "name": "cep",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "postal_code": {
-          "name": "postal_code",
+        "street": {
+          "name": "street",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "locality": {
-          "name": "locality",
+        "street_number": {
+          "name": "street_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "district": {
+          "name": "district",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uf": {
+          "name": "uf",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -535,6 +851,164 @@
             },
             {
               "expression": "phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.employee_advances": {
+      "name": "employee_advances",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_on": {
+          "name": "requested_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "type": "payment_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receipt_ref": {
+          "name": "receipt_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "installments": {
+          "name": "installments",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "first_deduction_month": {
+          "name": "first_deduction_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "advance_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pendente'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "canceled_at": {
+          "name": "canceled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancel_reason": {
+          "name": "cancel_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "employee_advances_staff_idx": {
+          "name": "employee_advances_staff_idx",
+          "columns": [
+            {
+              "expression": "staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "employee_advances_company_status_idx": {
+          "name": "employee_advances_company_status_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1039,6 +1513,248 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.payroll_entries": {
+      "name": "payroll_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payroll_period_id": {
+          "name": "payroll_period_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_salary_cents": {
+          "name": "base_salary_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "commission_cents": {
+          "name": "commission_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "bonus_cents": {
+          "name": "bonus_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "other_earnings_cents": {
+          "name": "other_earnings_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "advance_deduction_cents": {
+          "name": "advance_deduction_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "other_deduction_cents": {
+          "name": "other_deduction_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "net_cents": {
+          "name": "net_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "services_count": {
+          "name": "services_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payroll_entries_period_staff_key": {
+          "name": "payroll_entries_period_staff_key",
+          "columns": [
+            {
+              "expression": "payroll_period_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payroll_entries_staff_idx": {
+          "name": "payroll_entries_staff_idx",
+          "columns": [
+            {
+              "expression": "staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payroll_periods": {
+      "name": "payroll_periods",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "competence_month": {
+          "name": "competence_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "payroll_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aberta'"
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closed_by_user_id": {
+          "name": "closed_by_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payroll_periods_company_month_key": {
+          "name": "payroll_periods_company_month_key",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "competence_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.permissions": {
       "name": "permissions",
       "schema": "",
@@ -1433,13 +2149,6 @@
           "notNull": true,
           "default": 0
         },
-        "vat_rate": {
-          "name": "vat_rate",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 23
-        },
         "duration_minutes": {
           "name": "duration_minutes",
           "type": "integer",
@@ -1601,18 +2310,166 @@
           "primaryKey": false,
           "notNull": true
         },
-        "job_title": {
-          "name": "job_title",
+        "cpf": {
+          "name": "cpf",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'lavador'"
+          "notNull": false
+        },
+        "rg": {
+          "name": "rg",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
         },
         "phone": {
           "name": "phone",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cep": {
+          "name": "cep",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "street": {
+          "name": "street",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "street_number": {
+          "name": "street_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "complement": {
+          "name": "complement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "district": {
+          "name": "district",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uf": {
+          "name": "uf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pix_key": {
+          "name": "pix_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pix_kind": {
+          "name": "pix_kind",
+          "type": "pix_key_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_name": {
+          "name": "bank_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_branch": {
+          "name": "bank_branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_account": {
+          "name": "bank_account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_account_type": {
+          "name": "bank_account_type",
+          "type": "bank_account_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "job_title": {
+          "name": "job_title",
+          "type": "job_title",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'lavador'"
+        },
+        "contract_type": {
+          "name": "contract_type",
+          "type": "contract_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'clt'"
+        },
+        "status": {
+          "name": "status",
+          "type": "staff_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ativo'"
+        },
+        "hired_at": {
+          "name": "hired_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "terminated_at": {
+          "name": "terminated_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_salary_cents": {
+          "name": "base_salary_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "commission_kind": {
+          "name": "commission_kind",
+          "type": "commission_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nenhuma'"
         },
         "commission_bps": {
           "name": "commission_bps",
@@ -1621,18 +2478,25 @@
           "notNull": true,
           "default": 0
         },
+        "commission_fixed_cents": {
+          "name": "commission_fixed_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "active": {
           "name": "active",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": true
-        },
-        "hired_at": {
-          "name": "hired_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1661,6 +2525,115 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "staff_company_cpf_key": {
+          "name": "staff_company_cpf_key",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cpf",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.staff_commission_rules": {
+      "name": "staff_commission_rules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "staff_id": {
+          "name": "staff_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_category_id": {
+          "name": "service_category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "commission_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'percentual'"
+        },
+        "bps": {
+          "name": "bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "fixed_cents": {
+          "name": "fixed_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "staff_commission_rules_key": {
+          "name": "staff_commission_rules_key",
+          "columns": [
+            {
+              "expression": "staff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "service_category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2025,7 +2998,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'ligeiro_medio'"
+          "default": "'hatch'"
         },
         "year": {
           "name": "year",
@@ -2236,15 +3209,15 @@
           "notNull": true,
           "default": 0
         },
-        "vat_rate": {
-          "name": "vat_rate",
+        "commission_bps": {
+          "name": "commission_bps",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 23
+          "default": 0
         },
-        "commission_bps": {
-          "name": "commission_bps",
+        "commission_fixed_cents": {
+          "name": "commission_fixed_cents",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -2377,8 +3350,8 @@
           "notNull": true,
           "default": 0
         },
-        "vat_cents": {
-          "name": "vat_cents",
+        "iss_cents": {
+          "name": "iss_cents",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -2543,12 +3516,32 @@
     }
   },
   "enums": {
+    "public.advance_status": {
+      "name": "advance_status",
+      "schema": "public",
+      "values": [
+        "pendente",
+        "pago",
+        "parcialmente_abatido",
+        "quitado",
+        "cancelado"
+      ]
+    },
     "public.arrival_type": {
       "name": "arrival_type",
       "schema": "public",
       "values": [
         "agendado",
         "walk_in"
+      ]
+    },
+    "public.bank_account_kind": {
+      "name": "bank_account_kind",
+      "schema": "public",
+      "values": [
+        "corrente",
+        "poupanca",
+        "pagamento"
       ]
     },
     "public.bay_status": {
@@ -2558,6 +3551,25 @@
         "livre",
         "ocupada",
         "manutencao"
+      ]
+    },
+    "public.commission_kind": {
+      "name": "commission_kind",
+      "schema": "public",
+      "values": [
+        "nenhuma",
+        "percentual",
+        "valor_fixo"
+      ]
+    },
+    "public.contract_type": {
+      "name": "contract_type",
+      "schema": "public",
+      "values": [
+        "clt",
+        "pj",
+        "diarista",
+        "comissionado"
       ]
     },
     "public.customer_segment": {
@@ -2575,11 +3587,23 @@
       "schema": "public",
       "values": [
         "risco",
-        "amolgadela",
-        "vidro_partido",
+        "amassado",
+        "vidro_trincado",
         "pintura",
-        "jante",
+        "roda",
         "outro"
+      ]
+    },
+    "public.job_title": {
+      "name": "job_title",
+      "schema": "public",
+      "values": [
+        "lavador",
+        "detailer",
+        "polidor",
+        "recepcionista",
+        "gerente",
+        "caixa"
       ]
     },
     "public.loyalty_kind": {
@@ -2595,11 +3619,42 @@
       "name": "payment_method",
       "schema": "public",
       "values": [
-        "mbway",
-        "multibanco",
-        "transferencia",
+        "pix",
         "dinheiro",
-        "cartao"
+        "debito",
+        "credito",
+        "transferencia",
+        "boleto"
+      ]
+    },
+    "public.payroll_status": {
+      "name": "payroll_status",
+      "schema": "public",
+      "values": [
+        "aberta",
+        "fechada",
+        "paga"
+      ]
+    },
+    "public.pix_key_kind": {
+      "name": "pix_key_kind",
+      "schema": "public",
+      "values": [
+        "cpf",
+        "cnpj",
+        "email",
+        "telefone",
+        "aleatoria"
+      ]
+    },
+    "public.staff_status": {
+      "name": "staff_status",
+      "schema": "public",
+      "values": [
+        "ativo",
+        "inativo",
+        "ferias",
+        "afastado"
       ]
     },
     "public.stock_movement_kind": {
@@ -2616,24 +3671,24 @@
       "name": "vehicle_category",
       "schema": "public",
       "values": [
-        "ligeiro_pequeno",
-        "ligeiro_medio",
+        "moto",
+        "hatch",
+        "sedan",
         "suv",
-        "comercial",
-        "moto"
+        "caminhonete"
       ]
     },
     "public.work_order_status": {
       "name": "work_order_status",
       "schema": "public",
       "values": [
-        "aguarda_chegada",
+        "aguardando_chegada",
         "em_fila",
         "em_lavagem",
         "acabamento",
         "detalhe",
-        "controlo_qualidade",
-        "pronta_recolha",
+        "controle_qualidade",
+        "pronto_entrega",
         "entregue",
         "cancelada"
       ]
