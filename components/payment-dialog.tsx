@@ -136,7 +136,7 @@ export function RedeemLoyaltyButton({ orderId, stamps, target }: { orderId: numb
       icon={<Gift />}
       label="Usar prêmio de fidelidade"
       title="Aplicar o prêmio de fidelidade?"
-      description={`O cliente tem ${stamps} carimbos. O prêmio desconta o serviço mais barato desta ordem e zera ${target} carimbos do cartão. Precisa ser aplicado antes do pagamento.`}
+      description={`O cliente tem ${stamps} ${stamps === 1 ? "carimbo" : "carimbos"}. O prêmio desconta o serviço mais barato desta ordem e zera ${target} carimbos do cartão. Precisa ser aplicado antes do pagamento.`}
       confirmLabel="Aplicar prêmio"
       successMessage="Prêmio aplicado."
       action={redeemLoyalty}

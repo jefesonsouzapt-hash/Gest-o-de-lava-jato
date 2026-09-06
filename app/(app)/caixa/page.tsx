@@ -48,7 +48,7 @@ export default async function CaixaPage({ searchParams }: { searchParams: Promis
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label={`Recebido em ${formatDate(data)}`} value={recebido} icon={Wallet} tone="positive" />
-        <StatCard label="A receber" value={aReceber} icon={Receipt} tone={aReceber > 0 ? "warning" : "neutral"} hint={`${emAberto.length} ordens em aberto`} />
+        <StatCard label="A receber" value={aReceber} icon={Receipt} tone={aReceber > 0 ? "warning" : "neutral"} hint={`${emAberto.length} ${emAberto.length === 1 ? "ordem" : "ordens"} em aberto`} />
         <StatCard label="Estornado" value={estornado} icon={RotateCcw} tone={estornado > 0 ? "negative" : "neutral"} />
         <StatCard label="Ordens no dia" value={ordensDoDia.length} icon={Banknote} money={false} />
       </div>

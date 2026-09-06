@@ -66,7 +66,7 @@ export default async function RelatoriosPage({
               label="Ticket médio"
               value={resumo.ticketCents}
               icon={Receipt}
-              hint={`${resumo.orders} ordens`}
+              hint={`${resumo.orders} ${resumo.orders === 1 ? "ordem" : "ordens"}`}
             />
             {podeFinanceiro && (
               <StatCard
