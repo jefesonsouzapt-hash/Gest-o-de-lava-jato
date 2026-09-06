@@ -119,11 +119,18 @@ export const pixKeySchema = z
   )
   .transform((v) => (v === "" ? null : v))
 
-/** Valor em reais digitado pelo usuário; sai em centavos inteiros. */
+/**
+ * Valor em reais digitado pelo usuário; sai em centavos inteiros.
+ *
+ * Aceita o campo **ausente**: um `input` desabilitado não é enviado pelo
+ * navegador, e sem isso o formulário devolvia "expected string, received
+ * undefined" — mensagem de biblioteca, em inglês, apontando para um campo que
+ * o usuário nem podia preencher.
+ */
 export const moneySchema = z
   .string()
-  .trim()
-  .transform(parseCurrencyToCents)
+  .optional()
+  .transform((v) => parseCurrencyToCents(v ?? ""))
   .refine((cents) => cents >= 0, "O valor não pode ser negativo.")
 
 export const positiveMoneySchema = moneySchema.refine((c) => c > 0, "Informe um valor maior que zero.")
@@ -137,8 +144,8 @@ export const positiveMoneySchema = moneySchema.refine((c) => c > 0, "Informe um 
  */
 export const percentSchema = z
   .string()
-  .trim()
-  .transform((v) => parseCurrencyToCents(v || "0"))
+  .optional()
+  .transform((v) => parseCurrencyToCents(v?.trim() || "0"))
   .refine((bps) => bps >= 0 && bps <= 10_000, "O percentual deve ficar entre 0% e 100%.")
 
 /** Data no formato ISO usado pelo banco. */
@@ -477,9 +484,21 @@ export function parseForm<T extends z.ZodType>(
     const campo = problema.path.join(".") || "_"
     // A primeira mensagem de cada campo ganha: três erros no mesmo input só
     // confundem.
-    if (!(campo in errors)) errors[campo] = problema.message
+    if (!(campo in errors)) errors[campo] = mensagemAmigavel(problema.message)
   }
   return { ok: false, errors }
+}
+
+/**
+ * Rede de segurança: nenhuma mensagem crua do Zod chega ao usuário.
+ *
+ * Toda regra deste arquivo traz mensagem própria em português, mas um schema
+ * novo escrito sem mensagem cairia no texto em inglês da biblioteca — e o
+ * usuário leria "Invalid input: expected string, received undefined".
+ */
+function mensagemAmigavel(mensagem: string): string {
+  const crua = /^(Invalid|Required|Expected|Too |Unrecognized|expected )/i.test(mensagem)
+  return crua ? "Confira este campo." : mensagem
 }
 
 /** Descobre o tipo da chave PIX para gravar junto com ela. */

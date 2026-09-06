@@ -341,3 +341,40 @@ describe("parseForm", () => {
     if (r.ok) expect(r.data.serviceIds).toEqual(["1", "2", "3"])
   })
 })
+
+describe("campo ausente no formulário", () => {
+  it("trata campo de dinheiro que não foi enviado como zero", () => {
+    // Um input desabilitado não é enviado pelo navegador. Sem isso, o
+    // formulário devolvia "expected string, received undefined" — mensagem de
+    // biblioteca, em inglês, apontando para um campo que o usuário nem podia
+    // preencher.
+    const r = staffSchema.safeParse({
+      name: "Rafael",
+      cpf: "",
+      phone: "",
+      email: "",
+      cep: "",
+      uf: "",
+      pixKey: "",
+      hiredAt: "",
+      birthDate: "",
+      baseSalaryCents: "1.500,00",
+      commissionKind: "percentual",
+      commissionBps: "30",
+      // commissionFixedCents ausente de propósito
+    })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.commissionFixedCents).toBe(0)
+  })
+
+  it("nunca deixa vazar mensagem crua da biblioteca", () => {
+    const schema = z.object({ obrigatorio: z.string() })
+    const r = parseForm(schema, form({}))
+    expect(r.ok).toBe(false)
+    if (!r.ok) {
+      const mensagem = Object.values(r.errors)[0]
+      expect(mensagem).not.toMatch(/Invalid|expected|Required/i)
+      expect(mensagem).toBe("Confira este campo.")
+    }
+  })
+})
