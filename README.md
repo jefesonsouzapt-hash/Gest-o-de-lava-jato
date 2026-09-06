@@ -7,7 +7,7 @@ pistas, ordens de serviço, estoque, fidelidade, comissões e folha de pagamento
 Next.js (App Router) · TypeScript · PostgreSQL com Drizzle · Zod · Vitest ·
 Playwright · Tailwind CSS.
 
-> As regras de código, o vocabulário obrigatório de pt-PT e o fluxo de trabalho
+> As regras de código, o vocabulário obrigatório de pt-BR e o fluxo de trabalho
 > do GitHub estão em **[AGENTS.md](./AGENTS.md)**. Leia antes de contribuir.
 
 ## Localização

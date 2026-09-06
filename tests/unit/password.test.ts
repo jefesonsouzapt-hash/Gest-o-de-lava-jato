@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest"
 import { fakeVerify, hashPassword, verifyPassword } from "@/lib/auth/password"
 
 // O scrypt é deliberadamente lento — é isso que trava a força bruta. Cada hash
-// leva ~100 ms, por isso este ficheiro tem folga no tempo-limite.
+// leva ~100 ms, por isso este arquivo tem folga no tempo-limite.
 const LENTO = 30_000
 
-describe("hash da palavra-passe", () => {
+describe("hash da senha", () => {
   it(
-    "confirma a palavra-passe correta e recusa a errada",
+    "confirma a senha correta e recusa a errada",
     async () => {
       const hash = await hashPassword("uma frase-passe longa")
       expect(await verifyPassword("uma frase-passe longa", hash)).toBe(true)
@@ -17,9 +17,9 @@ describe("hash da palavra-passe", () => {
   )
 
   it(
-    "gera hashes diferentes para a mesma palavra-passe",
+    "gera hashes diferentes para a mesma senha",
     async () => {
-      // Sem salt por hash, duas contas com a mesma palavra-passe ficariam
+      // Sem salt por hash, duas contas com a mesma senha ficariam
       // visivelmente iguais na base de dados.
       const a = await hashPassword("a mesma frase-passe")
       const b = await hashPassword("a mesma frase-passe")
@@ -45,19 +45,19 @@ describe("hash da palavra-passe", () => {
     LENTO,
   )
 
-  it("nunca contém a palavra-passe em claro", async () => {
+  it("nunca contém a senha em claro", async () => {
     const hash = await hashPassword("segredo-muito-especifico")
     expect(hash).not.toContain("segredo-muito-especifico")
   }, LENTO)
 
   it(
-    "trata acentos equivalentes como a mesma palavra-passe",
+    "trata acentos equivalentes como a mesma senha",
     async () => {
       // "ç" pode chegar como um código ou como "c" mais cedilha combinante,
-      // consoante o teclado e o sistema. Sem normalizar, a mesma palavra-passe
+      // dependendo do teclado e o sistema. Sem normalizar, a mesma senha
       // escrita num Mac não abria a conta criada num Windows.
-      const composto = "palavra-passe-cação"
-      const decomposto = "palavra-passe-cação"
+      const composto = "senha-cação"
+      const decomposto = "senha-cação"
       expect(composto).not.toBe(decomposto)
 
       const hash = await hashPassword(composto)
@@ -85,7 +85,7 @@ describe("hash da palavra-passe", () => {
   )
 
   it(
-    "recusa palavra-passe vazia contra um hash real",
+    "recusa senha vazia contra um hash real",
     async () => {
       const hash = await hashPassword("frase-passe qualquer")
       expect(await verifyPassword("", hash)).toBe(false)

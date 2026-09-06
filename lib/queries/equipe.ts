@@ -10,7 +10,7 @@ import {
   staff,
   staffCommissionRules,
 } from "@/lib/db/schema"
-import { advanceStatusOf, remainingBalance, splitInstallments } from "@/lib/payroll/calc"
+import { advanceStatusOf, nextInstallmentCents, remainingBalance } from "@/lib/payroll/calc"
 
 export type StaffRow = typeof staff.$inferSelect
 export type AdvanceRow = typeof employeeAdvances.$inferSelect
@@ -67,6 +67,8 @@ export async function listCommissionRules(companyId: number, staffId: number): P
 export type AdvanceWithBalance = AdvanceRow & {
   staffName: string
   deductedCents: number
+  /** Quantas parcelas já saíram em folhas anteriores. */
+  deductionsCount: number
   remainingCents: number
   installmentCents: number
   derivedStatus: ReturnType<typeof advanceStatusOf>
@@ -93,23 +95,36 @@ export async function listAdvances(
         from ${advanceDeductions}
         where ${advanceDeductions.advanceId} = ${employeeAdvances.id}
       ), 0)`,
+      parcelasFeitas: sql<string>`coalesce((
+        select count(*)
+        from ${advanceDeductions}
+        where ${advanceDeductions.advanceId} = ${employeeAdvances.id}
+      ), 0)`,
     })
     .from(employeeAdvances)
     .innerJoin(staff, eq(employeeAdvances.staffId, staff.id))
     .where(and(...filtros))
     .orderBy(desc(employeeAdvances.requestedOn), desc(employeeAdvances.id))
 
-  const resultado = linhas.map(({ vale, staffName, abatido }) => {
+  const resultado = linhas.map(({ vale, staffName, abatido, parcelasFeitas }) => {
     const deductedCents = Number.parseInt(abatido, 10) || 0
+    const deductionsCount = Number.parseInt(parcelasFeitas, 10) || 0
     const restante = remainingBalance({ amountCents: vale.amountCents, deductedCents })
     return {
       ...vale,
       staffName,
       deductedCents,
+      deductionsCount,
       remainingCents: restante,
-      // A parcela é sempre recalculada da divisão original, e não guardada:
-      // assim o centavo de resto continua caindo na última.
-      installmentCents: splitInstallments(vale.amountCents, vale.installments)[0] ?? 0,
+      // A parcela é sempre recalculada, nunca guardada: assim o centavo de
+      // resto cai mesmo na última e o vale fecha no número de parcelas
+      // combinado.
+      installmentCents: nextInstallmentCents({
+        amountCents: vale.amountCents,
+        installments: vale.installments,
+        deductedCents,
+        deductionsCount,
+      }),
       derivedStatus: advanceStatusOf({
         amountCents: vale.amountCents,
         deductedCents,

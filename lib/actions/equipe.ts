@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
+import { isUniqueViolation } from "@/lib/db/errors"
 import { auditLogs, staff, staffCommissionRules } from "@/lib/db/schema"
-import { requirePermission } from "@/lib/auth/guard"
+import { tryPermission } from "@/lib/auth/guard"
 import { parseForm, resolvePixKind, staffCommissionRuleSchema, staffSchema } from "@/lib/validation/schemas"
 import type { FieldErrors } from "@/lib/validation/schemas"
 
@@ -27,22 +28,13 @@ function revalidarEquipe(staffId?: number) {
   if (staffId) revalidatePath(`/equipe/${staffId}`)
 }
 
-/** O drizzle põe o erro do driver em `cause`; o código não fica na superfície. */
-function codigoPostgres(erro: unknown): string | null {
-  let atual = erro
-  for (let i = 0; i < 5; i++) {
-    if (typeof atual !== "object" || atual === null) return null
-    const codigo = (atual as { code?: unknown }).code
-    if (typeof codigo === "string") return codigo
-    atual = (atual as { cause?: unknown }).cause
-  }
-  return null
-}
 
 const CPF_DUPLICADO = "Já existe um colaborador com este CPF."
 
 export async function createStaff(_estado: ActionState, formData: FormData): Promise<ActionState> {
-  const actor = await requirePermission("equipe.gerir")
+  const portao = await tryPermission("equipe.gerir")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const analisado = parseForm(staffSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors, values: echoValues(formData) }
@@ -68,7 +60,7 @@ export async function createStaff(_estado: ActionState, formData: FormData): Pro
       after: JSON.stringify({ name: dados.name, jobTitle: dados.jobTitle }),
     })
   } catch (erro) {
-    if (codigoPostgres(erro) === "23505") {
+    if (isUniqueViolation(erro)) {
       return { ok: false, errors: { cpf: CPF_DUPLICADO }, values: echoValues(formData) }
     }
     throw erro
@@ -79,7 +71,9 @@ export async function createStaff(_estado: ActionState, formData: FormData): Pro
 }
 
 export async function updateStaff(_estado: ActionState, formData: FormData): Promise<ActionState> {
-  const actor = await requirePermission("equipe.gerir")
+  const portao = await tryPermission("equipe.gerir")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10)
   if (!Number.isFinite(id)) return { ok: false, errors: { _: "Colaborador inválido." } }
@@ -103,7 +97,7 @@ export async function updateStaff(_estado: ActionState, formData: FormData): Pro
       // O companyId no WHERE impede editar colaborador de outra empresa pelo id.
       .where(and(eq(staff.id, id), eq(staff.companyId, actor.companyId)))
   } catch (erro) {
-    if (codigoPostgres(erro) === "23505") {
+    if (isUniqueViolation(erro)) {
       return { ok: false, errors: { cpf: CPF_DUPLICADO }, values: echoValues(formData) }
     }
     throw erro
@@ -131,7 +125,9 @@ export async function updateStaff(_estado: ActionState, formData: FormData): Pro
  * comissão apurada e vale descontado continuam ligados a ele.
  */
 export async function setStaffActive(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("equipe.gerir")
+  const portao = await tryPermission("equipe.gerir")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10)
   if (!Number.isFinite(id)) return { ok: false, error: "Colaborador inválido." }
@@ -158,7 +154,9 @@ export async function setStaffActive(formData: FormData): Promise<{ ok: boolean;
 // --- Regras de comissão por categoria ---------------------------------------
 
 export async function saveCommissionRule(_estado: ActionState, formData: FormData): Promise<ActionState> {
-  const actor = await requirePermission("equipe.gerir")
+  const portao = await tryPermission("equipe.gerir")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const analisado = parseForm(staffCommissionRuleSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors, values: echoValues(formData) }
@@ -186,7 +184,9 @@ export async function saveCommissionRule(_estado: ActionState, formData: FormDat
 }
 
 export async function deleteCommissionRule(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("equipe.gerir")
+  const portao = await tryPermission("equipe.gerir")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10)
   if (!Number.isFinite(id)) return { ok: false, error: "Regra inválida." }

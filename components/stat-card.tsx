@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/locale/money"
 
 /**
- * Um número em destaque. `money` decide entre euros e contagem — a mesma caixa
- * serve para faturação e para "8 viaturas".
+ * Um número em destaque. `money` decide entre reais e contagem — a mesma caixa
+ * serve para faturamento e para "8 carros".
  */
 export function StatCard({
   label,
@@ -46,7 +46,7 @@ export function StatCard({
         </span>
       </div>
       <p className={cn("mt-3 text-2xl font-bold tracking-tight tabular-nums", corValor)}>
-        {money ? formatCurrency(value) : value.toLocaleString("pt-PT")}
+        {money ? formatCurrency(value) : value.toLocaleString("pt-BR")}
       </p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>

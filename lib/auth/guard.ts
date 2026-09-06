@@ -62,3 +62,24 @@ export function guardErrorMessage(error: unknown): string | null {
   if (error instanceof ForbiddenError || error instanceof UnauthenticatedError) return error.message
   return null
 }
+
+/**
+ * O portão em forma de resultado, para as actions que respondem a um
+ * formulário.
+ *
+ * `requirePermission` lança, e uma exceção numa server action chega ao
+ * navegador como erro genérico: o usuário vê a tela quebrar sem saber que o
+ * problema é permissão — ou que a sessão dele expirou e basta entrar de novo.
+ * A negação continua acontecendo no servidor; muda só o que ele lê.
+ */
+export async function tryPermission(
+  permission: Permission,
+): Promise<{ ok: true; actor: Actor } | { ok: false; message: string }> {
+  try {
+    return { ok: true, actor: await requirePermission(permission) }
+  } catch (erro) {
+    const mensagem = guardErrorMessage(erro)
+    if (mensagem) return { ok: false, message: mensagem }
+    throw erro
+  }
+}

@@ -71,7 +71,7 @@ describe("separação de funções", () => {
     expect(can(recepcionista, "pagamento.estornar")).toBe(false)
   })
 
-  it("o recepcionista não gere o catálogo nem a equipa", () => {
+  it("o recepcionista não gerencia o catálogo nem a equipe", () => {
     const recepcionista = actor("recepcionista")
     expect(can(recepcionista, "servico.gerir")).toBe(false)
     expect(can(recepcionista, "equipe.gerir")).toBe(false)

@@ -12,10 +12,11 @@ import {
   payrollPeriods,
   staff,
 } from "@/lib/db/schema"
-import { requirePermission } from "@/lib/auth/guard"
+import { requirePermission, tryPermission } from "@/lib/auth/guard"
 import { competenceMonthSchema, parseForm } from "@/lib/validation/schemas"
 import type { FieldErrors } from "@/lib/validation/schemas"
-import { closePayroll, splitInstallments } from "@/lib/payroll/calc"
+import { closePayroll } from "@/lib/payroll/calc"
+import { atualizarStatusDoVale } from "@/lib/payroll/advance-status"
 import { advancesDueIn, commissionTotals, getPayrollPeriod } from "@/lib/queries/equipe"
 
 export type ActionState = { ok: true } | { ok: false; errors: FieldErrors } | null
@@ -54,6 +55,9 @@ export type PayrollPreviewLine = {
  * `companyId` de fora deixaria qualquer um ler a folha de outro lava jato.
  */
 export async function previewPayroll(competenceMonth: string): Promise<PayrollPreviewLine[]> {
+  // Aqui o portão continua lançando: a prévia devolve linhas, não um estado de
+  // formulário, e não há onde encaixar uma mensagem. Quem chega sem permissão
+  // já foi mandado embora antes, no `requirePermissionPage` da página.
   const actor = await requirePermission("folha.ver")
   return calcularPrevia(actor.companyId, competenceMonth)
 }
@@ -79,7 +83,10 @@ async function calcularPrevia(
       .filter((v) => v.staffId === colaborador.id)
       .map((v) => ({
         id: v.id,
-        installmentCents: splitInstallments(v.amountCents, v.installments)[0] ?? 0,
+        // A parcela vem de `listAdvances`, que já conta quantas saíram: a
+        // última cobra o saldo devedor inteiro e o vale fecha no número de
+        // parcelas combinado.
+        installmentCents: v.installmentCents,
         remainingCents: v.remainingCents,
       }))
 
@@ -114,7 +121,9 @@ async function calcularPrevia(
  */
 export async function closePayrollPeriod(_estado: ActionState, formData: FormData): Promise<ActionState> {
   // Fechar é do dono: é o ato que transforma apuração em obrigação de pagamento.
-  const actor = await requirePermission("folha.fechar")
+  const portao = await tryPermission("folha.fechar")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const analisado = parseForm(payrollFormSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors }
@@ -207,9 +216,8 @@ export async function closePayrollPeriod(_estado: ActionState, formData: FormDat
   })
 
   // Atualiza a situação de cada vale tocado pelo fechamento.
-  const { atualizarStatus } = await import("@/lib/actions/vales")
   const valesTocados = new Set(linhas.flatMap((l) => l.deductions.map((d) => d.advanceId)))
-  for (const advanceId of valesTocados) await atualizarStatus(advanceId)
+  for (const advanceId of valesTocados) await atualizarStatusDoVale(advanceId)
 
   revalidarFolha()
   return { ok: true }
@@ -217,7 +225,9 @@ export async function closePayrollPeriod(_estado: ActionState, formData: FormDat
 
 /** Marca a folha como paga, depois de o dinheiro sair. */
 export async function markPayrollPaid(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("folha.fechar")
+  const portao = await tryPermission("folha.fechar")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const competencia = String(formData.get("competenceMonth") ?? "").trim()
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) return { ok: false, error: "Competência inválida." }
@@ -250,7 +260,9 @@ export async function markPayrollPaid(formData: FormData): Promise<{ ok: boolean
  * Uma folha já paga nunca reabre: o dinheiro saiu e o holerite foi entregue.
  */
 export async function reopenPayrollPeriod(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("folha.fechar")
+  const portao = await tryPermission("folha.fechar")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const competencia = String(formData.get("competenceMonth") ?? "").trim()
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) return { ok: false, error: "Competência inválida." }
@@ -292,12 +304,11 @@ export async function reopenPayrollPeriod(formData: FormData): Promise<{ ok: boo
     })
   })
 
-  const { atualizarStatus } = await import("@/lib/actions/vales")
   const vales = await db
     .select({ id: employeeAdvances.id })
     .from(employeeAdvances)
     .where(eq(employeeAdvances.companyId, actor.companyId))
-  for (const vale of vales) await atualizarStatus(vale.id)
+  for (const vale of vales) await atualizarStatusDoVale(vale.id)
 
   revalidarFolha()
   return { ok: true }
