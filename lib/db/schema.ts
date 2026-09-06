@@ -145,9 +145,9 @@ export const companies = pgTable(
     logoUrl: text("logo_url"),
     /** Cor de marca em hexadecimal, usada nos tokens do tema. */
     brandColor: text("brand_color").notNull().default("#2f6fd0"),
-    /** Nº de lavagens que dá direito a prémio. 0 desliga a fidelização. */
+    /** Nº de lavagens que dá direito ao prêmio. 0 desliga a fidelidade. */
     loyaltyThreshold: integer("loyalty_threshold").notNull().default(10),
-    /** Desconto do prémio, em percentagem. 100 = lavagem grátis. */
+    /** Desconto do prêmio, em porcentagem. 100 = lavagem grátis. */
     loyaltyRewardPercent: integer("loyalty_reward_percent").notNull().default(100),
     /** Dias sem visita a partir dos quais o cliente entra nos lembretes. */
     reminderAfterDays: integer("reminder_after_days").notNull().default(30),
@@ -395,13 +395,13 @@ export const vehicleInspections = pgTable(
     companyId: integer("company_id").notNull(),
     workOrderId: integer("work_order_id").notNull(),
     vehicleId: integer("vehicle_id").notNull(),
-    /** Quilómetros no conta-quilómetros, quando registados. */
+    /** Quilometragem do odômetro, quando registrada. */
     odometerKm: integer("odometer_km"),
     fuelLevelPercent: integer("fuel_level_percent"),
     /** Objetos pessoais deixados no interior. */
     personalItems: text("personal_items"),
     notes: text("notes"),
-    /** Assinatura do cliente em data URL, ou confirmação verbal registada. */
+    /** Assinatura do cliente em data URL, ou confirmação verbal registrada. */
     signatureDataUrl: text("signature_data_url"),
     signedByName: text("signed_by_name"),
     inspectedByStaffId: integer("inspected_by_staff_id"),
@@ -525,7 +525,7 @@ export const packageItems = pgTable(
 // --- Agenda e fila de espera -------------------------------------------------
 
 /**
- * Marcações e chegadas. Uma marcação nasce aqui e dá origem a uma ficha de
+ * Agendamentos e chegadas. Um agendamento nasce aqui e dá origem a uma ficha de
  * trabalho quando o carro chega; um cliente sem agendamento cria as duas ao mesmo tempo.
  */
 export const appointments = pgTable(
@@ -567,7 +567,7 @@ export const workOrders = pgTable(
     createdByUserId: integer("created_by_user_id"),
     status: workOrderStatus("status").notNull().default("em_fila"),
     arrival: arrivalType("arrival").notNull().default("walk_in"),
-    /** Data de competência: é por ela que a faturação e os relatórios agrupam. */
+    /** Data de competência: é por ela que o faturamento e os relatórios agrupam. */
     businessDate: date("business_date").notNull(),
 
     // Totais gravados, não somados na leitura: o preço do item é uma fotografia
@@ -579,7 +579,7 @@ export const workOrders = pgTable(
     /** ISS embutido no total, gravado com a alíquota vigente na venda. */
     issCents: integer("iss_cents").notNull().default(0),
 
-    /** Prémio de fidelidade aplicado nesta ficha, se houve. */
+    /** Prêmio de fidelidade aplicado nesta ficha, se houve. */
     loyaltyRewardApplied: boolean("loyalty_reward_applied").notNull().default(false),
 
     arrivedAt: timestamp("arrived_at", { withTimezone: true }),
@@ -629,11 +629,11 @@ export const inventoryProducts = pgTable(
     id: serial("id").primaryKey(),
     companyId: integer("company_id").notNull(),
     name: text("name").notNull(),
-    /** `champo`, `cera`, `limpa_jantes`, `microfibra`, `filtro`, … */
+    /** `shampoo`, `cera`, `limpa-rodas`, `microfibra`, `filtro`, … */
     kind: text("kind").notNull().default("quimico"),
     /** Unidade de medida: `L`, `ml`, `kg`, `un`. */
     unit: text("unit").notNull().default("un"),
-    /** Quantidade em stock, na unidade acima e em milésimos para aceitar 0,5 L. */
+    /** Quantidade em estoque, na unidade acima e em milésimos para aceitar 0,5 L. */
     stockMilli: integer("stock_milli").notNull().default(0),
     /** Abaixo deste valor a aplicação avisa. */
     minStockMilli: integer("min_stock_milli").notNull().default(0),
@@ -663,7 +663,7 @@ export const stockMovements = pgTable(
   (t) => [index("stock_movements_product_idx").on(t.productId)],
 )
 
-/** Consumo estimado de um produto por serviço, para descontar stock. */
+/** Consumo estimado de um produto por serviço, para dar baixa no estoque. */
 export const serviceConsumables = pgTable(
   "service_consumables",
   {
@@ -677,7 +677,7 @@ export const serviceConsumables = pgTable(
 // --- Pagamentos --------------------------------------------------------------
 
 /**
- * Um recebimento. Uma ficha pode ter mais de um (metade em MB WAY, metade em
+ * Um recebimento. Uma ficha pode ter mais de um (metade em PIX, metade em
  * dinheiro), por isso o pagamento não é uma coluna da ficha.
  */
 export const payments = pgTable(
@@ -688,10 +688,10 @@ export const payments = pgTable(
     workOrderId: integer("work_order_id").notNull(),
     method: paymentMethod("method").notNull(),
     amountCents: integer("amount_cents").notNull(),
-    /** Referência Multibanco, ID de transação MB WAY, últimos dígitos do cartão. */
+    /** ID da transação PIX, NSU do cartão, últimos dígitos — o que identifica o recebimento. */
     reference: text("reference"),
     receivedByUserId: integer("received_by_user_id"),
-    /** Preenchido quando o recebimento é anulado; a linha nunca se apaga. */
+    /** Preenchido quando o recebimento é estornado; a linha nunca se apaga. */
     voidedAt: timestamp("voided_at", { withTimezone: true }),
     voidReason: text("void_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -726,7 +726,7 @@ export const loyaltyTransactions = pgTable(
 
 /**
  * Quem mudou o quê. Escrito por toda a ação que altera dinheiro, estado de
- * ficha, stock ou permissões.
+ * ficha, estoque ou permissões.
  */
 export const auditLogs = pgTable(
   "audit_logs",

@@ -106,6 +106,9 @@ componente.
 - **Folha nunca fica negativa.** Vale que não cabe no líquido do mês rola para
   a folha seguinte; nunca vira salário negativo.
 - **Nada de segredos no repositório.** Só `.env.example` com chaves vazias.
+- **Em Supabase, RLS ligado em toda tabela.** O schema `public` vira API REST
+  automaticamente, e a chave `anon` é pública. Sem RLS, `users`, `sessions` e
+  `payments` ficam abertos. Ver `drizzle/0001_rls_supabase.sql`.
 - **Comentários explicam o porquê**, não o quê. Em português do Brasil.
 - **Sem dados inventados na interface.** Um valor que não existe mostra estado
   vazio, não um número de exemplo.

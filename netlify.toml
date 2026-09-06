@@ -1,0 +1,29 @@
+# Deploy no Netlify.
+#
+# O plugin oficial do Next.js é instalado pelo Netlify automaticamente quando
+# detecta o framework; declarar aqui deixa explícito e evita depender da
+# detecção.
+
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  # O `pnpm` vem do campo `packageManager` do package.json.
+  NODE_VERSION = "22"
+  # O Playwright não roda no build do Netlify — baixar os navegadores seria
+  # minutos de build jogados fora a cada deploy.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# O sistema inteiro é renderizado no servidor e lê o banco: nada aqui pode ser
+# guardado em cache de CDN, senão um lava jato veria a fila de outro.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
