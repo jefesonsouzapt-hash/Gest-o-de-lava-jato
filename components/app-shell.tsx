@@ -1,0 +1,194 @@
+"use client"
+
+import type React from "react"
+import { useState, useTransition } from "react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  BarChart3,
+  Boxes,
+  CalendarClock,
+  Car,
+  CircleUser,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Settings,
+  SprayCan,
+  Users,
+  UserRound,
+  Wallet,
+  X,
+} from "lucide-react"
+import { logout } from "@/lib/actions/auth"
+import { Logo } from "@/components/logo"
+import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import type { Permission } from "@/lib/auth/permissions"
+
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; permission?: Permission }
+
+// A permissão de cada entrada. Esconder o menu é só cortesia — a página do
+// servidor volta a verificar, porque o endereço pode ser escrito à mão.
+const NAV: NavItem[] = [
+  { href: "/painel", label: "Painel", icon: LayoutDashboard },
+  { href: "/rececao", label: "Receção e fila", icon: CalendarClock, permission: "rececao.gerir" },
+  { href: "/fichas", label: "Fichas de trabalho", icon: ClipboardList, permission: "ficha.ver" },
+  { href: "/clientes", label: "Clientes", icon: Users, permission: "cliente.ver" },
+  { href: "/viaturas", label: "Viaturas", icon: Car, permission: "cliente.ver" },
+  { href: "/servicos", label: "Serviços", icon: SprayCan, permission: "servico.ver" },
+  { href: "/consumiveis", label: "Consumíveis", icon: Boxes, permission: "stock.ver" },
+  { href: "/equipa", label: "Equipa", icon: UserRound, permission: "equipa.ver" },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, permission: "relatorio.ver" },
+  { href: "/caixa", label: "Caixa", icon: Wallet, permission: "relatorio.financeiro" },
+  { href: "/perfil", label: "A minha conta", icon: CircleUser },
+  { href: "/definicoes", label: "Definições", icon: Settings, permission: "empresa.gerir" },
+]
+
+export function AppShell({
+  children,
+  user,
+}: {
+  children: React.ReactNode
+  user: { name: string; email: string; roleName: string; companyName: string; permissions: readonly string[] }
+}) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [aberto, setAberto] = useState(false)
+  const [, startTransition] = useTransition()
+
+  const itens = NAV.filter((item) => !item.permission || user.permissions.includes(item.permission))
+  const atual = itens.find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
+  const titulo = atual?.label ?? "Gestão de Lava Jato"
+
+  const iniciais = user.name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
+
+  return (
+    <div className="flex min-h-svh bg-background">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform lg:static lg:translate-x-0",
+          aberto ? "translate-x-0" : "-translate-x-full",
+        )}
+        aria-label="Navegação principal"
+      >
+        <div className="flex items-center justify-between">
+          <Logo />
+          <button
+            className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent lg:hidden"
+            onClick={() => setAberto(false)}
+            aria-label="Fechar menu"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <nav className="mt-7 flex flex-1 flex-col gap-1 overflow-y-auto">
+          {itens.map((item) => {
+            const Icon = item.icon
+            const ativo = atual?.href === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setAberto(false)}
+                aria-current={ativo ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  ativo
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                )}
+              >
+                <Icon className="size-[18px]" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2.5 py-2 text-xs text-sidebar-foreground/60">
+          <span className="size-1.5 shrink-0 rounded-full bg-sidebar-primary" />
+          <span className="truncate">{user.companyName}</span>
+        </div>
+      </aside>
+
+      {aberto && (
+        <button
+          className="fixed inset-0 z-40 bg-foreground/40 lg:hidden"
+          onClick={() => setAberto(false)}
+          aria-label="Fechar navegação"
+        />
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
+          <button
+            className="rounded-md p-2 text-muted-foreground hover:bg-muted lg:hidden"
+            onClick={() => setAberto(true)}
+            aria-label="Abrir navegação"
+          >
+            <Menu className="size-5" />
+          </button>
+          <h1 className="text-base font-semibold tracking-tight">{titulo}</h1>
+
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Avatar className="size-9 border border-border">
+                  <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                    {iniciais}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {/* O rótulo é um `Menu.GroupLabel` do Base UI e rebenta fora
+                    de um `Menu.Group` — e o erro leva a página inteira. */}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex flex-col">
+                    <span className="truncate font-semibold">{user.name}</span>
+                    <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                    <span className="mt-1 text-xs font-normal text-primary">{user.roleName}</span>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                {/* Navegação por `router.push` e não por `render={<Link/>}`:
+                    o Base UI rebenta ao compor o item do menu com o Link do
+                    Next (erro #31) e leva a página inteira com ele. */}
+                <DropdownMenuItem onClick={() => router.push("/perfil")}>
+                  <CircleUser className="size-4" />A minha conta
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => startTransition(async () => void (await logout()))}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="size-4" />
+                  Terminar sessão
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+    </div>
+  )
+}
