@@ -12,34 +12,37 @@ import {
   todayISO,
 } from "@/lib/locale/datetime"
 
-// O processo de teste corre em UTC (ver vitest.config.ts). É de propósito: na
-// Vercel o servidor também corre em UTC, e é aí que uma conversão em falta
-// atira uma lavagem da meia-noite para o dia anterior.
+// O processo de teste roda em UTC (ver vitest.config.ts). É de propósito: na
+// Vercel o servidor também roda em UTC, e é aí que uma conversão faltando joga
+// uma lavagem do fim da tarde para o dia seguinte.
 
-describe("fuso Europe/Lisbon", () => {
-  it("usa a hora de Lisboa e não a do processo, no horário de verão", () => {
-    // 20/07/2026 23:30 UTC = 21/07/2026 00:30 em Lisboa (WEST, UTC+1).
-    const instante = new Date("2026-07-20T23:30:00Z")
-    expect(formatTime(instante)).toBe("00:30")
-    expect(toISODate(instante)).toBe("2026-07-21")
-    expect(formatDateTime(instante)).toBe("21/07/2026 00:30")
+describe("fuso America/Sao_Paulo", () => {
+  it("usa a hora de São Paulo e não a do processo", () => {
+    // 21/07/2026 02:30 UTC = 20/07/2026 23:30 em São Paulo (UTC-3).
+    // Sem a conversão, uma lavagem entregue às 23:30 entraria no faturamento
+    // do dia seguinte e o caixa do dia fecharia errado.
+    const instante = new Date("2026-07-21T02:30:00Z")
+    expect(formatTime(instante)).toBe("23:30")
+    expect(toISODate(instante)).toBe("2026-07-20")
+    expect(formatDateTime(instante)).toBe("20/07/2026 23:30")
   })
 
-  it("acompanha o horário de inverno, em que Lisboa é igual a UTC", () => {
-    // Em janeiro Portugal continental está em WET (UTC+0).
-    const instante = new Date("2026-01-15T23:30:00Z")
-    expect(formatTime(instante)).toBe("23:30")
+  it("mantém o mesmo dia no meio do expediente", () => {
+    const instante = new Date("2026-01-15T17:00:00Z") // 14:00 em São Paulo
+    expect(formatTime(instante)).toBe("14:00")
     expect(toISODate(instante)).toBe("2026-01-15")
   })
 
   it("mostra a meia-noite como 00:00 e não como 24:00", () => {
-    expect(formatTime(new Date("2026-01-15T00:00:00Z"))).toBe("00:00")
+    expect(formatTime(new Date("2026-01-15T03:00:00Z"))).toBe("00:00")
   })
 
-  it("calcula hoje e o mês corrente em Lisboa", () => {
-    const instante = new Date("2026-07-31T23:45:00Z") // 01/08 em Lisboa
-    expect(todayISO(instante)).toBe("2026-08-01")
-    expect(currentMonthKey(instante)).toBe("2026-08")
+  it("calcula hoje e o mês corrente em São Paulo", () => {
+    // 01/08 02:00 UTC ainda é 31/07 em São Paulo: o fechamento do mês tem de
+    // seguir o calendário do lava jato, não o do servidor.
+    const instante = new Date("2026-08-01T02:00:00Z")
+    expect(todayISO(instante)).toBe("2026-07-31")
+    expect(currentMonthKey(instante)).toBe("2026-07")
   })
 
   it("devolve um traço para instante ausente ou inválido", () => {
@@ -82,13 +85,13 @@ describe("duração", () => {
   })
 })
 
-describe("cronómetro do Kanban", () => {
+describe("cronômetro do Kanban", () => {
   it("conta os minutos decorridos", () => {
     const agora = new Date("2026-03-12T10:00:00Z")
     expect(minutesSince(new Date("2026-03-12T09:15:00Z"), agora)).toBe(45)
   })
 
-  it("nunca devolve negativo com relógios dessincronizados", () => {
+  it("nunca devolve negativo com relógios fora de sincronia", () => {
     const agora = new Date("2026-03-12T10:00:00Z")
     expect(minutesSince(new Date("2026-03-12T10:05:00Z"), agora)).toBe(0)
   })

@@ -1,12 +1,31 @@
+CREATE TYPE "public"."advance_status" AS ENUM('pendente', 'pago', 'parcialmente_abatido', 'quitado', 'cancelado');--> statement-breakpoint
 CREATE TYPE "public"."arrival_type" AS ENUM('agendado', 'walk_in');--> statement-breakpoint
+CREATE TYPE "public"."bank_account_kind" AS ENUM('corrente', 'poupanca', 'pagamento');--> statement-breakpoint
 CREATE TYPE "public"."bay_status" AS ENUM('livre', 'ocupada', 'manutencao');--> statement-breakpoint
+CREATE TYPE "public"."commission_kind" AS ENUM('nenhuma', 'percentual', 'valor_fixo');--> statement-breakpoint
+CREATE TYPE "public"."contract_type" AS ENUM('clt', 'pj', 'diarista', 'comissionado');--> statement-breakpoint
 CREATE TYPE "public"."customer_segment" AS ENUM('ocasional', 'regular', 'vip', 'frota');--> statement-breakpoint
-CREATE TYPE "public"."inspection_damage_kind" AS ENUM('risco', 'amolgadela', 'vidro_partido', 'pintura', 'jante', 'outro');--> statement-breakpoint
+CREATE TYPE "public"."inspection_damage_kind" AS ENUM('risco', 'amassado', 'vidro_trincado', 'pintura', 'roda', 'outro');--> statement-breakpoint
+CREATE TYPE "public"."job_title" AS ENUM('lavador', 'detailer', 'polidor', 'recepcionista', 'gerente', 'caixa');--> statement-breakpoint
 CREATE TYPE "public"."loyalty_kind" AS ENUM('carimbo', 'resgate', 'ajuste');--> statement-breakpoint
-CREATE TYPE "public"."payment_method" AS ENUM('mbway', 'multibanco', 'transferencia', 'dinheiro', 'cartao');--> statement-breakpoint
+CREATE TYPE "public"."payment_method" AS ENUM('pix', 'dinheiro', 'debito', 'credito', 'transferencia', 'boleto');--> statement-breakpoint
+CREATE TYPE "public"."payroll_status" AS ENUM('aberta', 'fechada', 'paga');--> statement-breakpoint
+CREATE TYPE "public"."pix_key_kind" AS ENUM('cpf', 'cnpj', 'email', 'telefone', 'aleatoria');--> statement-breakpoint
+CREATE TYPE "public"."staff_status" AS ENUM('ativo', 'inativo', 'ferias', 'afastado');--> statement-breakpoint
 CREATE TYPE "public"."stock_movement_kind" AS ENUM('entrada', 'consumo', 'quebra', 'ajuste');--> statement-breakpoint
-CREATE TYPE "public"."vehicle_category" AS ENUM('ligeiro_pequeno', 'ligeiro_medio', 'suv', 'comercial', 'moto');--> statement-breakpoint
-CREATE TYPE "public"."work_order_status" AS ENUM('aguarda_chegada', 'em_fila', 'em_lavagem', 'acabamento', 'detalhe', 'controlo_qualidade', 'pronta_recolha', 'entregue', 'cancelada');--> statement-breakpoint
+CREATE TYPE "public"."vehicle_category" AS ENUM('moto', 'hatch', 'sedan', 'suv', 'caminhonete');--> statement-breakpoint
+CREATE TYPE "public"."work_order_status" AS ENUM('aguardando_chegada', 'em_fila', 'em_lavagem', 'acabamento', 'detalhe', 'controle_qualidade', 'pronto_entrega', 'entregue', 'cancelada');--> statement-breakpoint
+CREATE TABLE "advance_deductions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"advance_id" integer NOT NULL,
+	"staff_id" integer NOT NULL,
+	"payroll_entry_id" integer,
+	"competence_month" text NOT NULL,
+	"amount_cents" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "appointments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
@@ -37,17 +56,41 @@ CREATE TABLE "audit_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "commission_entries" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"staff_id" integer NOT NULL,
+	"work_order_id" integer NOT NULL,
+	"work_order_item_id" integer,
+	"description" text NOT NULL,
+	"base_cents" integer DEFAULT 0 NOT NULL,
+	"kind" "commission_kind" DEFAULT 'percentual' NOT NULL,
+	"bps" integer DEFAULT 0 NOT NULL,
+	"fixed_cents" integer DEFAULT 0 NOT NULL,
+	"amount_cents" integer DEFAULT 0 NOT NULL,
+	"competence_month" text NOT NULL,
+	"reversed_at" timestamp with time zone,
+	"reverse_reason" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "companies" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
-	"nif" text,
+	"legal_name" text,
+	"cnpj" text,
+	"municipal_registration" text,
 	"phone" text,
+	"whatsapp" text,
 	"email" text,
-	"address" text,
-	"postal_code" text,
-	"locality" text,
-	"municipality" text,
+	"cep" text,
+	"street" text,
+	"street_number" text,
+	"complement" text,
 	"district" text,
+	"city" text,
+	"uf" text,
+	"iss_bps" integer DEFAULT 500 NOT NULL,
 	"logo_url" text,
 	"brand_color" text DEFAULT '#2f6fd0' NOT NULL,
 	"loyalty_threshold" integer DEFAULT 10 NOT NULL,
@@ -64,16 +107,39 @@ CREATE TABLE "customers" (
 	"name" text NOT NULL,
 	"phone" text,
 	"email" text,
-	"nif" text,
-	"address" text,
-	"postal_code" text,
-	"locality" text,
+	"document" text,
+	"cep" text,
+	"street" text,
+	"street_number" text,
+	"district" text,
+	"city" text,
+	"uf" text,
 	"segment" "customer_segment" DEFAULT 'ocasional' NOT NULL,
 	"loyalty_stamps" integer DEFAULT 0 NOT NULL,
 	"last_visit_at" timestamp with time zone,
 	"marketing_opt_in" boolean DEFAULT false NOT NULL,
 	"notes" text,
 	"archived_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "employee_advances" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"staff_id" integer NOT NULL,
+	"amount_cents" integer NOT NULL,
+	"requested_on" date NOT NULL,
+	"paid_at" timestamp with time zone,
+	"payment_method" "payment_method",
+	"receipt_ref" text,
+	"installments" integer DEFAULT 1 NOT NULL,
+	"first_deduction_month" text NOT NULL,
+	"status" "advance_status" DEFAULT 'pendente' NOT NULL,
+	"notes" text,
+	"created_by_user_id" integer,
+	"canceled_at" timestamp with time zone,
+	"cancel_reason" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -140,6 +206,36 @@ CREATE TABLE "payments" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "payroll_entries" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"payroll_period_id" integer NOT NULL,
+	"staff_id" integer NOT NULL,
+	"base_salary_cents" integer DEFAULT 0 NOT NULL,
+	"commission_cents" integer DEFAULT 0 NOT NULL,
+	"bonus_cents" integer DEFAULT 0 NOT NULL,
+	"other_earnings_cents" integer DEFAULT 0 NOT NULL,
+	"advance_deduction_cents" integer DEFAULT 0 NOT NULL,
+	"other_deduction_cents" integer DEFAULT 0 NOT NULL,
+	"net_cents" integer DEFAULT 0 NOT NULL,
+	"services_count" integer DEFAULT 0 NOT NULL,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "payroll_periods" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"competence_month" text NOT NULL,
+	"status" "payroll_status" DEFAULT 'aberta' NOT NULL,
+	"closed_at" timestamp with time zone,
+	"closed_by_user_id" integer,
+	"paid_at" timestamp with time zone,
+	"notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "permissions" (
 	"key" text PRIMARY KEY NOT NULL,
 	"description" text NOT NULL
@@ -189,7 +285,6 @@ CREATE TABLE "services" (
 	"description" text,
 	"is_package" boolean DEFAULT false NOT NULL,
 	"base_price_cents" integer DEFAULT 0 NOT NULL,
-	"vat_rate" integer DEFAULT 23 NOT NULL,
 	"duration_minutes" integer DEFAULT 30 NOT NULL,
 	"commission_bps" integer DEFAULT 0 NOT NULL,
 	"counts_for_loyalty" boolean DEFAULT true NOT NULL,
@@ -211,13 +306,48 @@ CREATE TABLE "staff" (
 	"company_id" integer NOT NULL,
 	"user_id" integer,
 	"name" text NOT NULL,
-	"job_title" text DEFAULT 'lavador' NOT NULL,
+	"cpf" text,
+	"rg" text,
+	"birth_date" date,
 	"phone" text,
-	"commission_bps" integer DEFAULT 0 NOT NULL,
-	"active" boolean DEFAULT true NOT NULL,
+	"email" text,
+	"cep" text,
+	"street" text,
+	"street_number" text,
+	"complement" text,
+	"district" text,
+	"city" text,
+	"uf" text,
+	"pix_key" text,
+	"pix_kind" "pix_key_kind",
+	"bank_name" text,
+	"bank_branch" text,
+	"bank_account" text,
+	"bank_account_type" "bank_account_kind",
+	"job_title" "job_title" DEFAULT 'lavador' NOT NULL,
+	"contract_type" "contract_type" DEFAULT 'clt' NOT NULL,
+	"status" "staff_status" DEFAULT 'ativo' NOT NULL,
 	"hired_at" date,
+	"terminated_at" date,
+	"base_salary_cents" integer DEFAULT 0 NOT NULL,
+	"commission_kind" "commission_kind" DEFAULT 'nenhuma' NOT NULL,
+	"commission_bps" integer DEFAULT 0 NOT NULL,
+	"commission_fixed_cents" integer DEFAULT 0 NOT NULL,
+	"notes" text,
+	"active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "staff_commission_rules" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"staff_id" integer NOT NULL,
+	"service_category_id" integer,
+	"kind" "commission_kind" DEFAULT 'percentual' NOT NULL,
+	"bps" integer DEFAULT 0 NOT NULL,
+	"fixed_cents" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "stock_movements" (
@@ -269,7 +399,7 @@ CREATE TABLE "vehicles" (
 	"brand" text,
 	"model" text,
 	"color" text,
-	"category" "vehicle_category" DEFAULT 'ligeiro_medio' NOT NULL,
+	"category" "vehicle_category" DEFAULT 'hatch' NOT NULL,
 	"year" integer,
 	"notes" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -295,8 +425,8 @@ CREATE TABLE "work_order_items" (
 	"description" text NOT NULL,
 	"quantity" integer DEFAULT 1 NOT NULL,
 	"unit_price_cents" integer DEFAULT 0 NOT NULL,
-	"vat_rate" integer DEFAULT 23 NOT NULL,
 	"commission_bps" integer DEFAULT 0 NOT NULL,
+	"commission_fixed_cents" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -315,7 +445,7 @@ CREATE TABLE "work_orders" (
 	"subtotal_cents" integer DEFAULT 0 NOT NULL,
 	"discount_cents" integer DEFAULT 0 NOT NULL,
 	"total_cents" integer DEFAULT 0 NOT NULL,
-	"vat_cents" integer DEFAULT 0 NOT NULL,
+	"iss_cents" integer DEFAULT 0 NOT NULL,
 	"loyalty_reward_applied" boolean DEFAULT false NOT NULL,
 	"arrived_at" timestamp with time zone,
 	"started_at" timestamp with time zone,
@@ -329,12 +459,19 @@ CREATE TABLE "work_orders" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE INDEX "advance_deductions_advance_idx" ON "advance_deductions" USING btree ("advance_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "advance_deductions_advance_month_key" ON "advance_deductions" USING btree ("advance_id","competence_month");--> statement-breakpoint
 CREATE INDEX "appointments_company_scheduled_idx" ON "appointments" USING btree ("company_id","scheduled_for");--> statement-breakpoint
 CREATE INDEX "audit_logs_company_created_idx" ON "audit_logs" USING btree ("company_id","created_at");--> statement-breakpoint
 CREATE INDEX "audit_logs_entity_idx" ON "audit_logs" USING btree ("entity","entity_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "companies_nif_key" ON "companies" USING btree ("nif");--> statement-breakpoint
+CREATE INDEX "commission_entries_staff_month_idx" ON "commission_entries" USING btree ("staff_id","competence_month");--> statement-breakpoint
+CREATE INDEX "commission_entries_order_idx" ON "commission_entries" USING btree ("work_order_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "commission_entries_item_key" ON "commission_entries" USING btree ("work_order_item_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "companies_cnpj_key" ON "companies" USING btree ("cnpj");--> statement-breakpoint
 CREATE INDEX "customers_company_name_idx" ON "customers" USING btree ("company_id","name");--> statement-breakpoint
 CREATE INDEX "customers_company_phone_idx" ON "customers" USING btree ("company_id","phone");--> statement-breakpoint
+CREATE INDEX "employee_advances_staff_idx" ON "employee_advances" USING btree ("staff_id");--> statement-breakpoint
+CREATE INDEX "employee_advances_company_status_idx" ON "employee_advances" USING btree ("company_id","status");--> statement-breakpoint
 CREATE INDEX "inspection_damages_inspection_idx" ON "inspection_damages" USING btree ("inspection_id");--> statement-breakpoint
 CREATE INDEX "inspection_photos_inspection_idx" ON "inspection_photos" USING btree ("inspection_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "inventory_products_company_name_key" ON "inventory_products" USING btree ("company_id","name");--> statement-breakpoint
@@ -342,6 +479,9 @@ CREATE INDEX "loyalty_transactions_customer_idx" ON "loyalty_transactions" USING
 CREATE UNIQUE INDEX "package_items_key" ON "package_items" USING btree ("package_id","service_id");--> statement-breakpoint
 CREATE INDEX "payments_order_idx" ON "payments" USING btree ("work_order_id");--> statement-breakpoint
 CREATE INDEX "payments_company_created_idx" ON "payments" USING btree ("company_id","created_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "payroll_entries_period_staff_key" ON "payroll_entries" USING btree ("payroll_period_id","staff_id");--> statement-breakpoint
+CREATE INDEX "payroll_entries_staff_idx" ON "payroll_entries" USING btree ("staff_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "payroll_periods_company_month_key" ON "payroll_periods" USING btree ("company_id","competence_month");--> statement-breakpoint
 CREATE UNIQUE INDEX "role_permissions_key" ON "role_permissions" USING btree ("role_id","permission_key");--> statement-breakpoint
 CREATE INDEX "role_permissions_role_idx" ON "role_permissions" USING btree ("role_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "roles_company_key" ON "roles" USING btree ("company_id","key");--> statement-breakpoint
@@ -351,6 +491,8 @@ CREATE UNIQUE INDEX "service_prices_service_category_key" ON "service_prices" US
 CREATE UNIQUE INDEX "services_company_name_key" ON "services" USING btree ("company_id","name");--> statement-breakpoint
 CREATE INDEX "sessions_user_idx" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "staff_company_idx" ON "staff" USING btree ("company_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "staff_company_cpf_key" ON "staff" USING btree ("company_id","cpf");--> statement-breakpoint
+CREATE UNIQUE INDEX "staff_commission_rules_key" ON "staff_commission_rules" USING btree ("staff_id","service_category_id");--> statement-breakpoint
 CREATE INDEX "stock_movements_product_idx" ON "stock_movements" USING btree ("product_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_key" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "users_company_idx" ON "users" USING btree ("company_id");--> statement-breakpoint

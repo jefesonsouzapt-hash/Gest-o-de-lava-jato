@@ -3,18 +3,18 @@ import { ClipboardList, Droplets, ShieldCheck } from "lucide-react"
 const destaques = [
   {
     icon: Droplets,
-    title: "O pátio num ecrã",
+    title: "O pátio numa tela só",
     description: "Fila, pista, acabamento e entrega — sem caderno e sem grupo de WhatsApp.",
   },
   {
     icon: ShieldCheck,
-    title: "Inspeção de entrada",
-    description: "Danos e fotografias registados antes de tocar na viatura. Fim das discussões à saída.",
+    title: "Vistoria de entrada",
+    description: "Avarias e fotos registradas antes de encostar no carro. Fim da discussão na saída.",
   },
   {
     icon: ClipboardList,
-    title: "Caixa que fecha sozinho",
-    description: "Fichas pagas viram faturação; consumíveis e comissões saem no mesmo relatório.",
+    title: "Comissão e folha no automático",
+    description: "Ordem paga credita a comissão do lavador; vale e adiantamento entram no fechamento.",
   },
 ]
 
@@ -32,11 +32,11 @@ export function WelcomeShowcase() {
       <div className="relative">
         <p className="text-sm font-medium text-sidebar-primary">Gestão de Lava Jato</p>
         <h2 className="mt-4 max-w-md text-3xl font-bold leading-tight tracking-tight text-balance">
-          Da viatura na fila ao dinheiro em caixa.
+          Do carro na fila ao dinheiro no caixa.
         </h2>
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-sidebar-foreground/70 text-pretty">
-          Receção, pistas, fichas de trabalho, consumíveis e faturação no mesmo sítio — pensado para quem
-          atende ao balcão.
+          Recepção, pistas, ordens de serviço, estoque, comissões e folha no mesmo lugar — feito para quem
+          atende no balcão.
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export function WelcomeShowcase() {
       </ul>
 
       <p className="relative text-xs text-sidebar-foreground/50">
-        Feito para o dia a dia de um centro de detalhe automóvel.
+        Feito para o dia a dia de um lava jato de verdade.
       </p>
     </aside>
   )

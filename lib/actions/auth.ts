@@ -9,21 +9,21 @@ import { fakeVerify, hashPassword, verifyPassword } from "@/lib/auth/password"
 import { createSession, currentUserAgent, destroySession, purgeExpiredSessions } from "@/lib/auth/session"
 import { hasAnyUser, seedCatalog, seedRoles, syncPermissionCatalog } from "@/lib/auth/seed"
 import { loginSchema, parseForm, passwordSchema, type FieldErrors } from "@/lib/validation/schemas"
-import { isValidNif } from "@/lib/locale/pt"
+import { isValidCnpj } from "@/lib/locale/br"
 
 /**
  * O que a server action devolve ao formulário.
  *
- * `values` traz de volta o que foi escrito, sem a palavra-passe. O React 19
- * limpa um formulário não controlado assim que a ação termina, e sem isto um
- * dígito errado no NIF obrigava a reescrever tudo outra vez.
+ * `values` traz de volta o que foi digitado, sem a senha. O React 19 limpa um
+ * formulário não controlado assim que a ação termina, e sem isso um dígito
+ * errado no CNPJ obrigava a digitar tudo de novo.
  */
 export type FormState =
   | { ok: true }
   | { ok: false; errors: FieldErrors; values?: Record<string, string> }
   | null
 
-/** Devolve os campos escritos, exceto os que nunca voltam ao navegador. */
+/** Devolve os campos digitados, exceto os que nunca voltam ao navegador. */
 function echoValues(formData: FormData, omitir: string[] = ["password"]): Record<string, string> {
   const valores: Record<string, string> = {}
   for (const chave of new Set(formData.keys())) {
@@ -34,9 +34,9 @@ function echoValues(formData: FormData, omitir: string[] = ["password"]): Record
   return valores
 }
 
-// Mensagem única para email desconhecido e palavra-passe errada. Distinguir os
-// dois casos diria a um atacante quais os emails que têm conta.
-const CREDENCIAIS_INVALIDAS = "Email ou palavra-passe incorretos."
+// Mensagem única para e-mail desconhecido e senha errada. Distinguir os dois
+// casos diria a um atacante quais e-mails têm conta.
+const CREDENCIAIS_INVALIDAS = "E-mail ou senha incorretos."
 
 export async function login(_estado: FormState, formData: FormData): Promise<FormState> {
   const analisado = parseForm(loginSchema, formData)
@@ -57,7 +57,7 @@ export async function login(_estado: FormState, formData: FormData): Promise<For
   }
 
   const correta = await verifyPassword(password, conta.passwordHash)
-  // Conta desativada dá a mesma resposta: não confirma sequer que existe.
+  // Conta desativada dá a mesma resposta: não confirma nem que existe.
   if (!correta || !conta.active) {
     return { ok: false, errors: { _: CREDENCIAIS_INVALIDAS }, values: echoValues(formData) }
   }
@@ -78,30 +78,30 @@ export async function logout(): Promise<void> {
 }
 
 const setupSchema = z.object({
-  companyName: z.string().trim().min(1, "Indique o nome do lava jato.").max(120),
-  companyNif: z
+  companyName: z.string().trim().min(1, "Informe o nome do lava jato.").max(120),
+  companyCnpj: z
     .string()
     .trim()
-    .refine((v) => v === "" || isValidNif(v), "NIF inválido. Confirme os nove dígitos.")
+    .refine((v) => v === "" || isValidCnpj(v), "CNPJ inválido. Confira os 14 dígitos.")
     .transform((v) => (v === "" ? null : v.replace(/\D/g, ""))),
-  name: z.string().trim().min(1, "Indique o seu nome.").max(120),
-  email: z.string().trim().min(1, "Indique o email.").email("Endereço de email inválido."),
+  name: z.string().trim().min(1, "Informe o seu nome.").max(120),
+  email: z.string().trim().min(1, "Informe o e-mail.").email("E-mail inválido."),
   password: passwordSchema,
 })
 
 /**
- * Arranque: cria a empresa, os papéis, o catálogo inicial e a conta de
- * administrador. Só corre enquanto não houver nenhuma conta.
+ * Primeiro acesso: cria a empresa, os perfis, o catálogo inicial e a conta de
+ * administrador. Só roda enquanto não existir nenhuma conta.
  */
 export async function setupFirstCompany(_estado: FormState, formData: FormData): Promise<FormState> {
   const analisado = parseForm(setupSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors, values: echoValues(formData) }
 
   if (await hasAnyUser()) {
-    return { ok: false, errors: { _: "Este sistema já foi configurado. Inicie sessão." } }
+    return { ok: false, errors: { _: "Este sistema já foi configurado. Faça login." } }
   }
 
-  const { companyName, companyNif, name, email, password } = analisado.data
+  const { companyName, companyCnpj, name, email, password } = analisado.data
   const passwordHash = await hashPassword(password)
 
   let userId: number
@@ -111,7 +111,7 @@ export async function setupFirstCompany(_estado: FormState, formData: FormData):
 
       const [empresa] = await tx
         .insert(companies)
-        .values({ name: companyName, nif: companyNif })
+        .values({ name: companyName, cnpj: companyCnpj })
         .returning({ id: companies.id })
 
       const papeis = await seedRoles(tx, empresa.id)
@@ -140,12 +140,12 @@ export async function setupFirstCompany(_estado: FormState, formData: FormData):
       return conta.id
     })
   } catch (erro) {
-    // 23505 = violação de unicidade: o email já existe, ou duas configurações
+    // 23505 = violação de unicidade: o e-mail já existe, ou duas configurações
     // chegaram ao mesmo tempo.
     if (codigoPostgres(erro) === "23505") {
       return {
         ok: false,
-        errors: { email: "Já existe uma conta com este email." },
+        errors: { email: "Já existe uma conta com este e-mail." },
         values: echoValues(formData),
       }
     }
@@ -161,7 +161,7 @@ export async function setupFirstCompany(_estado: FormState, formData: FormData):
 
 /**
  * O drizzle embrulha o erro do driver e põe o original em `cause`, por isso o
- * código do Postgres não está à superfície do que foi lançado.
+ * código do Postgres não fica na superfície do que foi lançado.
  */
 function codigoPostgres(erro: unknown): string | null {
   let atual = erro

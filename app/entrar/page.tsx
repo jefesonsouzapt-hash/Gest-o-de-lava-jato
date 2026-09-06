@@ -4,9 +4,9 @@ import { WelcomeShowcase } from "@/components/welcome-showcase"
 import { getActor } from "@/lib/auth/session"
 import { hasAnyUser } from "@/lib/auth/seed"
 
-// Porta de entrada. Sistema por estrear: cria a empresa e o administrador.
-// Já configurado: início de sessão. Novas contas entram por convite do
-// administrador, nunca por registo livre.
+// Porta de entrada. Sistema zerado: cadastra a empresa e o administrador.
+// Já configurado: login. Contas novas são criadas pelo administrador, nunca
+// por cadastro livre.
 export default async function EntrarPage() {
   if (await getActor()) redirect("/painel")
 

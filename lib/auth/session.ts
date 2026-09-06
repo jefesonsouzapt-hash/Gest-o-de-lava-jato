@@ -9,10 +9,10 @@ export { hashToken } from "@/lib/auth/tokens"
 
 export const SESSION_COOKIE = "lj_sessao"
 
-/** Trinta dias. Renovada a cada início de sessão, não a cada pedido. */
+/** Trinta dias. Renovada a cada login, não a cada requisição. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
-/** Cria a sessão na base de dados e devolve o token em claro para a cookie. */
+/** Cria a sessão no banco e devolve o token em claro para o cookie. */
 export async function createSession(userId: number, userAgent?: string | null): Promise<string> {
   const token = generateSessionToken()
   await db.insert(sessions).values({
@@ -34,20 +34,20 @@ export async function setSessionCookie(token: string): Promise<void> {
   })
 }
 
-/** Termina a sessão dos dois lados: apaga a linha e limpa a cookie. */
+/** Encerra a sessão dos dois lados: apaga a linha e limpa o cookie. */
 export async function destroySession(): Promise<void> {
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE)?.value
-  // Apagar só a cookie deixaria o token válido para quem o tivesse copiado.
+  // Apagar só o cookie deixaria o token válido para quem o tivesse copiado.
   if (token) await db.delete(sessions).where(eq(sessions.tokenHash, hashToken(token)))
   jar.delete(SESSION_COOKIE)
 }
 
 /**
- * O ator do pedido atual, com as permissões já resolvidas, ou `null`.
+ * O usuário da requisição atual, com as permissões já resolvidas, ou `null`.
  *
  * As permissões vêm da tabela e não da constante do código: uma empresa pode
- * ter um papel personalizado, e o papel de sistema é apenas o que foi semeado.
+ * ter um perfil personalizado, e o perfil de sistema é só o que foi semeado.
  */
 export async function getActor(): Promise<Actor | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value
@@ -67,7 +67,7 @@ export async function getActor(): Promise<Actor | null> {
     .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, new Date())))
     .limit(1)
 
-  // Conta desativada perde o acesso já, sem esperar que a sessão expire.
+  // Conta desativada perde o acesso na hora, sem esperar a sessão expirar.
   if (!linha || !linha.active) return null
 
   const concedidas = await db
@@ -83,7 +83,7 @@ export async function getActor(): Promise<Actor | null> {
   }
 }
 
-/** Remove sessões expiradas. Chamada no início de sessão, não a cada pedido. */
+/** Remove sessões expiradas. Chamada no login, não a cada requisição. */
 export async function purgeExpiredSessions(): Promise<void> {
   await db.delete(sessions).where(lt(sessions.expiresAt, new Date()))
 }

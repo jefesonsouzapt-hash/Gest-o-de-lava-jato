@@ -13,62 +13,101 @@ import {
 
 // Convenções desta base de dados:
 //
-// 1. **Dinheiro em cêntimos inteiros.** Nunca `numeric` nem `real`. Ver
+// 1. **Dinheiro em centavos inteiros.** Nunca `numeric` nem `real`. Ver
 //    lib/locale/money.ts.
 // 2. **Multi-empresa.** Cada tabela de negócio traz `companyId`. Todas as
 //    consultas filtram por ele — é a fronteira entre clientes do SaaS, e
 //    esquecê-lo expõe dados de um lava jato a outro.
-// 3. **Nada se apaga.** Registos com histórico ficam inativos (`active`,
-//    `archivedAt`); apagar reescreveria faturação já emitida.
-// 4. Identificadores portugueses (NIF, matrícula, telemóvel) são guardados
-//    normalizados — sem espaços nem hífenes — para a pesquisa comparar.
+// 3. **Nada se apaga.** Registros com histórico ficam inativos (`active`,
+//    `archivedAt`); apagar reescreveria faturamento já emitido.
+// 4. Identificadores brasileiros (CPF, CNPJ, placa, telefone) são gravados
+//    normalizados — só dígitos, sem máscara — para a busca comparar.
 
 // --- Enumerações -------------------------------------------------------------
 
-/** Estados por que passa uma viatura, da marcação à entrega. */
+/** Situações pelas quais o veículo passa, do agendamento à entrega. */
 export const workOrderStatus = pgEnum("work_order_status", [
-  "aguarda_chegada", // agendada, ainda não chegou
-  "em_fila", // chegou; receção feita, à espera de pista
-  "em_lavagem", // em pista: exterior / chassi
+  "aguardando_chegada", // agendado, ainda não chegou
+  "em_fila", // chegou; recepção feita, esperando pista
+  "em_lavagem", // na pista: externa / chassi
   "acabamento", // secagem e interior
-  "detalhe", // polimento, estofos e outros serviços especiais
-  "controlo_qualidade",
-  "pronta_recolha", // cliente avisado
+  "detalhe", // polimento, bancos e outros serviços especiais
+  "controle_qualidade",
+  "pronto_entrega", // cliente avisado
   "entregue",
   "cancelada",
 ])
 
-/** Como a viatura chegou. */
+/** Como o veículo chegou. */
 export const arrivalType = pgEnum("arrival_type", ["agendado", "walk_in"])
 
-/** Tipologia da viatura: governa o preço do serviço. */
+/** Porte do veículo: governa o preço do serviço. */
 export const vehicleCategory = pgEnum("vehicle_category", [
-  "ligeiro_pequeno",
-  "ligeiro_medio",
-  "suv", // SUV / monovolume
-  "comercial", // todo-o-terreno / carrinha comercial
   "moto",
+  "hatch",
+  "sedan",
+  "suv",
+  "caminhonete", // caminhonete, utilitário, van
 ])
 
-/** Meios de pagamento em uso em Portugal. */
+/** Meios de pagamento em uso no Brasil. */
 export const paymentMethod = pgEnum("payment_method", [
-  "mbway",
-  "multibanco",
-  "transferencia",
+  "pix",
   "dinheiro",
-  "cartao",
+  "debito",
+  "credito",
+  "transferencia",
+  "boleto",
 ])
 
 export const bayStatus = pgEnum("bay_status", ["livre", "ocupada", "manutencao"])
+
+// --- Enumerações da equipe ---------------------------------------------------
+
+export const jobTitle = pgEnum("job_title", [
+  "lavador",
+  "detailer",
+  "polidor",
+  "recepcionista",
+  "gerente",
+  "caixa",
+])
+
+export const contractType = pgEnum("contract_type", ["clt", "pj", "diarista", "comissionado"])
+
+export const staffStatus = pgEnum("staff_status", ["ativo", "inativo", "ferias", "afastado"])
+
+/** Como a comissão do colaborador é calculada. */
+export const commissionKind = pgEnum("commission_kind", [
+  "nenhuma",
+  "percentual", // % sobre o valor do serviço
+  "valor_fixo", // R$ fixos por lavagem executada
+])
+
+export const pixKeyKind = pgEnum("pix_key_kind", ["cpf", "cnpj", "email", "telefone", "aleatoria"])
+
+export const bankAccountKind = pgEnum("bank_account_kind", ["corrente", "poupanca", "pagamento"])
+
+/** Vale / adiantamento salarial, do pedido até a quitação. */
+export const advanceStatus = pgEnum("advance_status", [
+  "pendente", // concedido, ainda não entregue ao funcionário
+  "pago", // dinheiro entregue, nada abatido ainda
+  "parcialmente_abatido",
+  "quitado",
+  "cancelado",
+])
+
+/** Fechamento da folha do mês. */
+export const payrollStatus = pgEnum("payroll_status", ["aberta", "fechada", "paga"])
 
 export const customerSegment = pgEnum("customer_segment", ["ocasional", "regular", "vip", "frota"])
 
 export const inspectionDamageKind = pgEnum("inspection_damage_kind", [
   "risco",
-  "amolgadela",
-  "vidro_partido",
+  "amassado",
+  "vidro_trincado",
   "pintura",
-  "jante",
+  "roda",
   "outro",
 ])
 
@@ -82,16 +121,27 @@ export const companies = pgTable(
   "companies",
   {
     id: serial("id").primaryKey(),
+    /** Nome fantasia, o que aparece na interface e no comprovante. */
     name: text("name").notNull(),
-    /** NIF da empresa, só dígitos. */
-    nif: text("nif"),
+    /** Razão social, quando difere do nome fantasia. */
+    legalName: text("legal_name"),
+    /** CNPJ (ou CPF do MEI), só dígitos. */
+    cnpj: text("cnpj"),
+    /** Inscrição municipal, para a nota de serviço. */
+    municipalRegistration: text("municipal_registration"),
     phone: text("phone"),
+    whatsapp: text("whatsapp"),
     email: text("email"),
-    address: text("address"),
-    postalCode: text("postal_code"),
-    locality: text("locality"),
-    municipality: text("municipality"),
+    cep: text("cep"),
+    street: text("street"),
+    streetNumber: text("street_number"),
+    complement: text("complement"),
     district: text("district"),
+    city: text("city"),
+    /** Sigla do estado: SP, RJ, MG… */
+    uf: text("uf"),
+    /** Alíquota de ISS do município, em pontos-base (500 = 5,00 %). */
+    issBps: integer("iss_bps").notNull().default(500),
     logoUrl: text("logo_url"),
     /** Cor de marca em hexadecimal, usada nos tokens do tema. */
     brandColor: text("brand_color").notNull().default("#2f6fd0"),
@@ -105,7 +155,7 @@ export const companies = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("companies_nif_key").on(t.nif)],
+  (t) => [uniqueIndex("companies_cnpj_key").on(t.cnpj)],
 )
 
 // --- Utilizadores, papéis e permissões (RBAC) --------------------------------
@@ -181,31 +231,94 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 )
 
-// --- Equipa ------------------------------------------------------------------
+// --- Equipe ------------------------------------------------------------------
 
 /**
- * Colaborador que executa serviço. Separado de `users`: nem todo o lavador
- * tem conta na aplicação, e nem toda a conta executa lavagens.
+ * Colaborador que trabalha no lava jato. Separado de `users`: nem todo lavador
+ * tem conta no sistema, e nem toda conta executa serviço. Quem tem os dois
+ * lados é ligado por `userId`.
  */
 export const staff = pgTable(
   "staff",
   {
     id: serial("id").primaryKey(),
     companyId: integer("company_id").notNull(),
-    /** Ligação opcional à conta, quando o colaborador também usa o sistema. */
+    /** Vínculo com a conta de acesso, quando o colaborador também usa o sistema. */
     userId: integer("user_id"),
+
+    // --- Dados pessoais ---
     name: text("name").notNull(),
-    /** `lavador` | `detailer` | `rececionista` | `gerente`. */
-    jobTitle: text("job_title").notNull().default("lavador"),
+    /** CPF, só dígitos. */
+    cpf: text("cpf"),
+    rg: text("rg"),
+    birthDate: date("birth_date"),
+    /** E.164: `+55DDNNNNNNNNN`. */
     phone: text("phone"),
-    /** Comissão padrão em pontos de base (1250 = 12,50 %). */
-    commissionBps: integer("commission_bps").notNull().default(0),
-    active: boolean("active").notNull().default(true),
+    email: text("email"),
+    cep: text("cep"),
+    street: text("street"),
+    streetNumber: text("street_number"),
+    complement: text("complement"),
+    district: text("district"),
+    city: text("city"),
+    uf: text("uf"),
+
+    // --- Pagamento ---
+    /** Chave PIX para o depósito do salário. */
+    pixKey: text("pix_key"),
+    pixKind: pixKeyKind("pix_kind"),
+    bankName: text("bank_name"),
+    bankBranch: text("bank_branch"),
+    bankAccount: text("bank_account"),
+    bankAccountType: bankAccountKind("bank_account_type"),
+
+    // --- Dados profissionais ---
+    jobTitle: jobTitle("job_title").notNull().default("lavador"),
+    contractType: contractType("contract_type").notNull().default("clt"),
+    status: staffStatus("status").notNull().default("ativo"),
     hiredAt: date("hired_at"),
+    terminatedAt: date("terminated_at"),
+
+    // --- Regras financeiras ---
+    /** Salário base mensal em centavos. Zero para quem só ganha comissão. */
+    baseSalaryCents: integer("base_salary_cents").notNull().default(0),
+    commissionKind: commissionKind("commission_kind").notNull().default("nenhuma"),
+    /** Comissão percentual padrão, em pontos-base (1250 = 12,50 %). */
+    commissionBps: integer("commission_bps").notNull().default(0),
+    /** Valor fixo por serviço executado, em centavos. */
+    commissionFixedCents: integer("commission_fixed_cents").notNull().default(0),
+
+    notes: text("notes"),
+    active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("staff_company_idx").on(t.companyId)],
+  (t) => [
+    index("staff_company_idx").on(t.companyId),
+    // O CPF identifica a pessoa dentro da empresa: bloqueia o cadastro em
+    // duplicidade, que faria a folha pagar duas vezes ao mesmo colaborador.
+    uniqueIndex("staff_company_cpf_key").on(t.companyId, t.cpf),
+  ],
+)
+
+/**
+ * Comissão diferente por categoria de serviço — 5 % na lavagem completa,
+ * 15 % na vitrificação. Vence a comissão do serviço e a padrão do colaborador.
+ */
+export const staffCommissionRules = pgTable(
+  "staff_commission_rules",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    staffId: integer("staff_id").notNull(),
+    /** Nulo = regra para qualquer categoria; preenchido = só para aquela. */
+    serviceCategoryId: integer("service_category_id"),
+    kind: commissionKind("kind").notNull().default("percentual"),
+    bps: integer("bps").notNull().default(0),
+    fixedCents: integer("fixed_cents").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("staff_commission_rules_key").on(t.staffId, t.serviceCategoryId)],
 )
 
 // --- Clientes e viaturas -----------------------------------------------------
@@ -216,14 +329,17 @@ export const customers = pgTable(
     id: serial("id").primaryKey(),
     companyId: integer("company_id").notNull(),
     name: text("name").notNull(),
-    /** E.164: `+3519XXXXXXXX`. */
+    /** E.164: `+55DDNNNNNNNNN`. */
     phone: text("phone"),
     email: text("email"),
-    /** NIF, só dígitos. Necessário para faturação com contribuinte. */
-    nif: text("nif"),
-    address: text("address"),
-    postalCode: text("postal_code"),
-    locality: text("locality"),
+    /** CPF ou CNPJ, só dígitos. Necessário para nota com o documento. */
+    document: text("document"),
+    cep: text("cep"),
+    street: text("street"),
+    streetNumber: text("street_number"),
+    district: text("district"),
+    city: text("city"),
+    uf: text("uf"),
     segment: customerSegment("segment").notNull().default("ocasional"),
     /** Carimbos acumulados no cartão de fidelidade. */
     loyaltyStamps: integer("loyalty_stamps").notNull().default(0),
@@ -247,19 +363,19 @@ export const vehicles = pgTable(
     id: serial("id").primaryKey(),
     companyId: integer("company_id").notNull(),
     customerId: integer("customer_id").notNull(),
-    /** Matrícula sem hífenes e em maiúsculas: `AA00AA`. */
+    /** Placa sem hífen e em maiúsculas: `ABC1D23`. */
     plate: text("plate").notNull(),
     brand: text("brand"),
     model: text("model"),
     color: text("color"),
-    category: vehicleCategory("category").notNull().default("ligeiro_medio"),
+    category: vehicleCategory("category").notNull().default("hatch"),
     year: integer("year"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   // Única dentro da empresa, não da plataforma: dois lava jatos diferentes
-  // atendem legitimamente a mesma viatura.
+  // atendem legitimamente o mesmo veículo.
   (t) => [
     uniqueIndex("vehicles_company_plate_key").on(t.companyId, t.plate),
     index("vehicles_customer_idx").on(t.customerId),
@@ -269,8 +385,8 @@ export const vehicles = pgTable(
 // --- Inspeção de entrada -----------------------------------------------------
 
 /**
- * Estado da viatura no momento em que entra. É o que protege o lava jato de
- * uma reclamação por um risco que já lá estava.
+ * Estado do veículo no momento em que entra. É o que protege o lava jato de
+ * uma reclamação por um risco que já estava lá.
  */
 export const vehicleInspections = pgTable(
   "vehicle_inspections",
@@ -363,12 +479,13 @@ export const services = pgTable(
     description: text("description"),
     /** Um pacote agrupa vários serviços num preço só (Lavagem Completa). */
     isPackage: boolean("is_package").notNull().default(false),
-    /** Preço-base com IVA incluído, em cêntimos, para a tipologia média. */
+    /** Preço em centavos, para o porte médio (hatch). */
     basePriceCents: integer("base_price_cents").notNull().default(0),
-    /** Taxa de IVA em percentagem: 23, 13 ou 6. */
-    vatRate: integer("vat_rate").notNull().default(23),
     durationMinutes: integer("duration_minutes").notNull().default(30),
-    /** Comissão em pontos de base. Vence a comissão padrão do colaborador. */
+    /**
+     * Comissão do serviço em pontos-base. Vence a comissão padrão do
+     * colaborador, e perde para uma regra por categoria do próprio colaborador.
+     */
     commissionBps: integer("commission_bps").notNull().default(0),
     /** Uma lavagem conta carimbo no cartão de fidelidade; um polimento não. */
     countsForLoyalty: boolean("counts_for_loyalty").notNull().default(true),
@@ -459,8 +576,8 @@ export const workOrders = pgTable(
     subtotalCents: integer("subtotal_cents").notNull().default(0),
     discountCents: integer("discount_cents").notNull().default(0),
     totalCents: integer("total_cents").notNull().default(0),
-    /** Parcela de IVA contida no total. */
-    vatCents: integer("vat_cents").notNull().default(0),
+    /** ISS embutido no total, gravado com a alíquota vigente na venda. */
+    issCents: integer("iss_cents").notNull().default(0),
 
     /** Prémio de fidelidade aplicado nesta ficha, se houve. */
     loyaltyRewardApplied: boolean("loyalty_reward_applied").notNull().default(false),
@@ -494,10 +611,11 @@ export const workOrderItems = pgTable(
     /** Cópia do nome no momento da venda. */
     description: text("description").notNull(),
     quantity: integer("quantity").notNull().default(1),
-    /** Preço unitário com IVA incluído, em cêntimos. */
+    /** Preço unitário em centavos. */
     unitPriceCents: integer("unit_price_cents").notNull().default(0),
-    vatRate: integer("vat_rate").notNull().default(23),
+    /** Cópia da regra de comissão vigente na venda. */
     commissionBps: integer("commission_bps").notNull().default(0),
+    commissionFixedCents: integer("commission_fixed_cents").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("work_order_items_order_idx").on(t.workOrderId)],
@@ -629,5 +747,172 @@ export const auditLogs = pgTable(
   (t) => [
     index("audit_logs_company_created_idx").on(t.companyId, t.createdAt),
     index("audit_logs_entity_idx").on(t.entity, t.entityId),
+  ],
+)
+
+// --- Comissões ---------------------------------------------------------------
+
+/**
+ * Comissão creditada ao colaborador. Nasce quando a ordem de serviço é
+ * concluída **e quitada** — comissão sobre serviço não pago é dívida do
+ * cliente, não ganho do lavador.
+ *
+ * Cada linha guarda a regra que valeu na hora (`bps` ou `fixedCents`), e não
+ * uma referência à regra atual: reajustar a comissão hoje não pode reescrever
+ * o que já foi apurado num mês fechado.
+ */
+export const commissionEntries = pgTable(
+  "commission_entries",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    staffId: integer("staff_id").notNull(),
+    workOrderId: integer("work_order_id").notNull(),
+    workOrderItemId: integer("work_order_item_id"),
+    /** Descrição do serviço, copiada para o extrato do colaborador. */
+    description: text("description").notNull(),
+    /** Valor do serviço sobre o qual a comissão incidiu, em centavos. */
+    baseCents: integer("base_cents").notNull().default(0),
+    kind: commissionKind("kind").notNull().default("percentual"),
+    bps: integer("bps").notNull().default(0),
+    fixedCents: integer("fixed_cents").notNull().default(0),
+    /** O que o colaborador ganhou nesta linha, em centavos. */
+    amountCents: integer("amount_cents").notNull().default(0),
+    /** Mês de competência `AAAA-MM`: define em qual folha a comissão entra. */
+    competenceMonth: text("competence_month").notNull(),
+    /** Preenchido quando o pagamento da OS é estornado; a linha nunca some. */
+    reversedAt: timestamp("reversed_at", { withTimezone: true }),
+    reverseReason: text("reverse_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("commission_entries_staff_month_idx").on(t.staffId, t.competenceMonth),
+    index("commission_entries_order_idx").on(t.workOrderId),
+    // Um item de OS gera no máximo uma comissão: sem isto, reprocessar a
+    // quitação creditaria o lavador duas vezes pelo mesmo serviço.
+    uniqueIndex("commission_entries_item_key").on(t.workOrderItemId),
+  ],
+)
+
+// --- Vales / adiantamentos ---------------------------------------------------
+
+/**
+ * Adiantamento salarial entregue ao colaborador, a ser descontado da folha.
+ *
+ * O valor é uma dívida do funcionário com a empresa até ser totalmente
+ * abatido. O saldo devedor é sempre `amountCents` menos a soma dos
+ * `advanceDeductions` — nunca um campo guardado à parte, que sairia do lugar
+ * no primeiro estorno.
+ */
+export const employeeAdvances = pgTable(
+  "employee_advances",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    staffId: integer("staff_id").notNull(),
+
+    /** Valor total concedido, em centavos. */
+    amountCents: integer("amount_cents").notNull(),
+    requestedOn: date("requested_on").notNull(),
+    /** Quando o dinheiro saiu para o funcionário. Nulo = ainda não entregue. */
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paymentMethod: paymentMethod("payment_method"),
+    /** Comprovante, ID da transação PIX, número do recibo. */
+    receiptRef: text("receipt_ref"),
+
+    /** Em quantas folhas será abatido. 1 = desconto único na próxima. */
+    installments: integer("installments").notNull().default(1),
+    /** Primeira folha que desconta, `AAAA-MM`. */
+    firstDeductionMonth: text("first_deduction_month").notNull(),
+
+    status: advanceStatus("status").notNull().default("pendente"),
+    notes: text("notes"),
+    createdByUserId: integer("created_by_user_id"),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    cancelReason: text("cancel_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("employee_advances_staff_idx").on(t.staffId),
+    index("employee_advances_company_status_idx").on(t.companyId, t.status),
+  ],
+)
+
+/** Cada parcela de um vale efetivamente descontada numa folha. */
+export const advanceDeductions = pgTable(
+  "advance_deductions",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    advanceId: integer("advance_id").notNull(),
+    staffId: integer("staff_id").notNull(),
+    payrollEntryId: integer("payroll_entry_id"),
+    competenceMonth: text("competence_month").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("advance_deductions_advance_idx").on(t.advanceId),
+    // Um vale desconta no máximo uma vez por folha; reabrir e refechar a folha
+    // não pode cobrar a mesma parcela duas vezes.
+    uniqueIndex("advance_deductions_advance_month_key").on(t.advanceId, t.competenceMonth),
+  ],
+)
+
+// --- Folha de pagamento ------------------------------------------------------
+
+export const payrollPeriods = pgTable(
+  "payroll_periods",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    /** Competência `AAAA-MM`. */
+    competenceMonth: text("competence_month").notNull(),
+    status: payrollStatus("status").notNull().default("aberta"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    closedByUserId: integer("closed_by_user_id"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("payroll_periods_company_month_key").on(t.companyId, t.competenceMonth)],
+)
+
+/**
+ * Uma linha por colaborador na folha do mês, com os valores **congelados** no
+ * fechamento. Recalcular ao abrir a tela faria o holerite de março mudar
+ * quando alguém corrigisse um preço em abril.
+ */
+export const payrollEntries = pgTable(
+  "payroll_entries",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(),
+    payrollPeriodId: integer("payroll_period_id").notNull(),
+    staffId: integer("staff_id").notNull(),
+
+    // Proventos
+    baseSalaryCents: integer("base_salary_cents").notNull().default(0),
+    commissionCents: integer("commission_cents").notNull().default(0),
+    bonusCents: integer("bonus_cents").notNull().default(0),
+    otherEarningsCents: integer("other_earnings_cents").notNull().default(0),
+
+    // Descontos
+    advanceDeductionCents: integer("advance_deduction_cents").notNull().default(0),
+    otherDeductionCents: integer("other_deduction_cents").notNull().default(0),
+
+    /** Proventos menos descontos. Nunca negativo — ver lib/payroll/calc.ts. */
+    netCents: integer("net_cents").notNull().default(0),
+
+    /** Quantos serviços o colaborador executou no mês, para conferência. */
+    servicesCount: integer("services_count").notNull().default(0),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("payroll_entries_period_staff_key").on(t.payrollPeriodId, t.staffId),
+    index("payroll_entries_staff_idx").on(t.staffId),
   ],
 )

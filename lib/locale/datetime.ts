@@ -1,11 +1,11 @@
-// Datas e horas em Europe/Lisbon, formato de 24 horas.
+// Datas e horas em America/Sao_Paulo, formato de 24 horas.
 //
-// O servidor pode correr em UTC (é o caso na Vercel), por isso nada aqui usa os
-// getters locais do `Date`: uma lavagem registada às 00:30 em Lisboa cairia no
-// dia anterior se o fuso fosse o da máquina.
+// O servidor roda em UTC (é o caso na Vercel), por isso nada aqui usa os
+// getters locais do `Date`: uma lavagem registrada às 22h em São Paulo cairia
+// no dia seguinte se o fuso fosse o da máquina.
 
-export const TIMEZONE = "Europe/Lisbon"
-export const LOCALE = "pt-PT"
+export const TIMEZONE = "America/Sao_Paulo"
+export const LOCALE = "pt-BR"
 
 const MESES = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -19,8 +19,8 @@ function toDate(value: Date | string | number): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** Partes da data já convertidas para o fuso de Lisboa. */
-function partsInLisbon(date: Date): { year: number; month: number; day: number; hour: number; minute: number } {
+/** Partes da data já convertidas para o fuso de São Paulo. */
+function partsInSaoPaulo(date: Date): { year: number; month: number; day: number; hour: number; minute: number } {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: TIMEZONE,
     year: "numeric",
@@ -42,15 +42,15 @@ function partsInLisbon(date: Date): { year: number; month: number; day: number; 
   }
 }
 
-/** Data de hoje em Lisboa, no formato ISO `AAAA-MM-DD` usado na base de dados. */
+/** Data de hoje em São Paulo, no formato ISO `AAAA-MM-DD` usado no banco. */
 export function todayISO(now: Date = new Date()): string {
-  const { year, month, day } = partsInLisbon(now)
+  const { year, month, day } = partsInSaoPaulo(now)
   return `${year}-${pad(month)}-${pad(day)}`
 }
 
-/** Mês corrente em Lisboa, `AAAA-MM`. */
+/** Mês corrente em São Paulo, `AAAA-MM`. */
 export function currentMonthKey(now: Date = new Date()): string {
-  const { year, month } = partsInLisbon(now)
+  const { year, month } = partsInSaoPaulo(now)
   return `${year}-${pad(month)}`
 }
 
@@ -68,29 +68,29 @@ export function formatDateLong(iso: string): string {
   return `${pad(d)} de ${MESES[m - 1]}`
 }
 
-/** Hora de um instante, em Lisboa: `14:35`. */
+/** Hora de um instante, em São Paulo: `14:35`. */
 export function formatTime(value: Date | string | number | null | undefined): string {
   if (value === null || value === undefined) return "—"
   const d = toDate(value)
   if (!d) return "—"
-  const { hour, minute } = partsInLisbon(d)
+  const { hour, minute } = partsInSaoPaulo(d)
   return `${pad(hour)}:${pad(minute)}`
 }
 
-/** Data e hora de um instante, em Lisboa: `12/03/2026 14:35`. */
+/** Data e hora de um instante, em São Paulo: `12/03/2026 14:35`. */
 export function formatDateTime(value: Date | string | number | null | undefined): string {
   if (value === null || value === undefined) return "—"
   const d = toDate(value)
   if (!d) return "—"
-  const { year, month, day, hour, minute } = partsInLisbon(d)
+  const { year, month, day, hour, minute } = partsInSaoPaulo(d)
   return `${pad(day)}/${pad(month)}/${year} ${pad(hour)}:${pad(minute)}`
 }
 
-/** Data ISO de um instante, em Lisboa. */
+/** Data ISO de um instante, em São Paulo. */
 export function toISODate(value: Date | string | number): string {
   const d = toDate(value)
   if (!d) return ""
-  const { year, month, day } = partsInLisbon(d)
+  const { year, month, day } = partsInSaoPaulo(d)
   return `${year}-${pad(month)}-${pad(day)}`
 }
 
@@ -118,8 +118,8 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * Tempo decorrido desde um instante, para o cronómetro do Kanban.
- * Devolve minutos inteiros; negativo é tratado como zero (relógios dessincronizados).
+ * Tempo decorrido desde um instante, para o cronômetro do Kanban.
+ * Retorna minutos inteiros; negativo é tratado como zero (relógios fora de sincronia).
  */
 export function minutesSince(value: Date | string | number, now: Date = new Date()): number {
   const d = toDate(value)

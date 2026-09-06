@@ -8,7 +8,7 @@ import { AppShell } from "@/components/app-shell"
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const actor = await requireActorPage()
 
-  const [perfil] = await db
+  const [conta] = await db
     .select({
       name: users.name,
       email: users.email,
@@ -24,10 +24,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       user={{
-        name: perfil?.name ?? "",
-        email: perfil?.email ?? "",
-        roleName: perfil?.roleName ?? "",
-        companyName: perfil?.companyName ?? "",
+        name: conta?.name ?? "",
+        email: conta?.email ?? "",
+        roleName: conta?.roleName ?? "",
+        companyName: conta?.companyName ?? "",
         permissions: actor.permissions,
       }}
     >

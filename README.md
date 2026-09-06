@@ -1,8 +1,8 @@
-# CRM e Gestão para Lava Jato / Centro de Detalhe
+# CRM e Gestão para Lava Jato / Estética Automotiva
 
 Sistema de gestão operacional e financeira para lava jatos e centros de detalhe
-automóvel em **Portugal**: receção de viaturas, fila de espera e agendamentos,
-pistas de lavagem, fichas de trabalho, consumíveis, fidelização e faturação.
+automotiva no **Brasil**: recepção de veículos, fila de espera e agendamentos,
+pistas, ordens de serviço, estoque, fidelidade, comissões e folha de pagamento.
 
 Next.js (App Router) · TypeScript · PostgreSQL com Drizzle · Zod · Vitest ·
 Playwright · Tailwind CSS.
@@ -14,11 +14,12 @@ Playwright · Tailwind CSS.
 
 | | |
 | --- | --- |
-| Idioma | Português de Portugal (pt-PT) |
-| Moeda | Euro (€), guardada em cêntimos inteiros |
-| Fuso | Europe/Lisbon |
-| Identificadores | NIF, Código Postal `0000-000`, Matrícula `AA-00-AA` |
-| Pagamentos | MB WAY, Multibanco, Transferência, Dinheiro, Cartão |
+| Idioma | Português do Brasil (pt-BR) |
+| Moeda | Real (R$), gravado em centavos inteiros |
+| Fuso | America/Sao_Paulo |
+| Identificadores | CPF/CNPJ, CEP `00000-000`, Placa `ABC-1234` e `ABC1D23` |
+| Pagamentos | PIX, Dinheiro, Débito, Crédito, Transferência, Boleto |
+| Imposto | ISS municipal (2% a 5%) |
 
 ## Como correr
 
