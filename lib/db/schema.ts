@@ -158,7 +158,7 @@ export const companies = pgTable(
   (t) => [uniqueIndex("companies_cnpj_key").on(t.cnpj)],
 )
 
-// --- Utilizadores, papéis e permissões (RBAC) --------------------------------
+// --- Usuários, papéis e permissões (RBAC) -----------------------------------
 
 /**
  * Catálogo de permissões. As chaves vivem em lib/auth/permissions.ts e são
@@ -205,7 +205,7 @@ export const users = pgTable(
     roleId: integer("role_id").notNull(),
     name: text("name").notNull(),
     email: text("email").notNull(),
-    /** Argon2id/scrypt. Nunca a palavra-passe em claro. */
+    /** scrypt. Nunca a senha em texto claro. */
     passwordHash: text("password_hash").notNull(),
     phone: text("phone"),
     active: boolean("active").notNull().default(true),
@@ -321,7 +321,7 @@ export const staffCommissionRules = pgTable(
   (t) => [uniqueIndex("staff_commission_rules_key").on(t.staffId, t.serviceCategoryId)],
 )
 
-// --- Clientes e viaturas -----------------------------------------------------
+// --- Clientes e veículos -----------------------------------------------------
 
 export const customers = pgTable(
   "customers",
@@ -416,7 +416,7 @@ export const inspectionDamages = pgTable(
     id: serial("id").primaryKey(),
     inspectionId: integer("inspection_id").notNull(),
     kind: inspectionDamageKind("kind").notNull(),
-    /** Zona da viatura: `frente`, `porta_esq`, `capot`, … */
+    /** Zona do veículo: `frente`, `porta_esq`, `capo`, … */
     area: text("area").notNull(),
     description: text("description"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -497,7 +497,7 @@ export const services = pgTable(
 )
 
 /**
- * Preço por tipologia de viatura. Só existe linha onde o preço difere do
+ * Preço por categoria de veículo. Só existe linha onde o preço difere do
  * `basePriceCents`; a ausência de linha significa "usa o preço-base".
  */
 export const servicePrices = pgTable(
@@ -526,7 +526,7 @@ export const packageItems = pgTable(
 
 /**
  * Marcações e chegadas. Uma marcação nasce aqui e dá origem a uma ficha de
- * trabalho quando a viatura chega; um walk-in cria as duas ao mesmo tempo.
+ * trabalho quando o carro chega; um cliente sem agendamento cria as duas ao mesmo tempo.
  */
 export const appointments = pgTable(
   "appointments",
@@ -572,7 +572,7 @@ export const workOrders = pgTable(
 
     // Totais gravados, não somados na leitura: o preço do item é uma fotografia
     // do momento da venda, e um mês fechado não pode mudar por causa de um
-    // reajuste de tabela feito hoje. Tudo em cêntimos, com IVA incluído.
+    // reajuste de tabela feito hoje. Tudo em centavos, com ISS incluído.
     subtotalCents: integer("subtotal_cents").notNull().default(0),
     discountCents: integer("discount_cents").notNull().default(0),
     totalCents: integer("total_cents").notNull().default(0),

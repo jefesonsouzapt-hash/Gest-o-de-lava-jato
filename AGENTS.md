@@ -93,6 +93,14 @@ componente.
   mensagem, não virado em 100 % sem o usuário saber.
 - **Autorização no servidor.** Esconder um botão não é segurança: cada server
   action e cada página protegida verifica a permissão outra vez.
+- **Toda função exportada de um arquivo `"use server"` é um endpoint público.**
+  O navegador chama com os argumentos que quiser. Por isso: começa por
+  `tryPermission`/`requirePermission`, e **nunca recebe `companyId` por
+  parâmetro** — a empresa vem sempre do usuário autenticado. Função auxiliar
+  que não é action mora fora desses arquivos.
+  `tests/unit/server-actions.test.ts` cobra as duas regras.
+- **Erro do banco não vira mensagem adivinhada.** `catch` que assume violação
+  de unicidade usa `isUniqueViolation`; o resto sobe.
 - **Dinheiro em centavos.** `integer`, nunca `float`. Comissão, desconto e
   imposto arredondam uma única vez, no fim.
 - **Folha nunca fica negativa.** Vale que não cabe no líquido do mês rola para

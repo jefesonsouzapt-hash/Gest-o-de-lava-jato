@@ -3,6 +3,7 @@ import {
   advanceStatusOf,
   closePayroll,
   commissionForItem,
+  nextInstallmentCents,
   remainingBalance,
   resolveCommissionRule,
   SEM_COMISSAO,
@@ -124,6 +125,58 @@ describe("parcelas do vale", () => {
     expect(splitInstallments(10_000, 0)).toHaveLength(1)
     expect(splitInstallments(10_000, -3)).toHaveLength(1)
     expect(splitInstallments(10_000, 999)).toHaveLength(60)
+  })
+})
+
+describe("próxima parcela a descontar", () => {
+  const vale = (deductedCents: number, deductionsCount: number) => ({
+    amountCents: 10_000,
+    installments: 3,
+    deductedCents,
+    deductionsCount,
+  })
+
+  it("cobra a parcela da vez", () => {
+    // R$ 100,00 em 3x: as duas primeiras são 33,33.
+    expect(nextInstallmentCents(vale(0, 0))).toBe(3_333)
+    expect(nextInstallmentCents(vale(3_333, 1))).toBe(3_333)
+  })
+
+  it("a última parcela cobra o saldo devedor inteiro", () => {
+    // 33,34, não 33,33: senão sobra R$ 0,01 e o vale de 3x arrasta um quarto
+    // desconto que ninguém combinou — e o colaborador fica devendo um centavo
+    // por meses.
+    expect(nextInstallmentCents(vale(6_666, 2))).toBe(3_334)
+  })
+
+  it("as três parcelas somam exatamente o vale", () => {
+    let abatido = 0
+    const cobradas: number[] = []
+    for (let i = 0; i < 3; i++) {
+      const parcela = nextInstallmentCents(vale(abatido, i))
+      cobradas.push(parcela)
+      abatido += parcela
+    }
+    expect(cobradas).toEqual([3_333, 3_333, 3_334])
+    expect(abatido).toBe(10_000)
+    // E não sobra uma quarta.
+    expect(nextInstallmentCents(vale(abatido, 3))).toBe(0)
+  })
+
+  it("nunca cobra mais que o saldo devedor", () => {
+    // Um desconto avulso adiantou o vale: a parcela seguinte cobra só o que
+    // falta, não os 33,33 da tabela.
+    expect(nextInstallmentCents(vale(9_990, 1))).toBe(10)
+  })
+
+  it("vale quitado não gera parcela", () => {
+    expect(nextInstallmentCents(vale(10_000, 3))).toBe(0)
+  })
+
+  it("desconto único cobra tudo de uma vez", () => {
+    expect(
+      nextInstallmentCents({ amountCents: 50_000, installments: 1, deductedCents: 0, deductionsCount: 0 }),
+    ).toBe(50_000)
   })
 })
 

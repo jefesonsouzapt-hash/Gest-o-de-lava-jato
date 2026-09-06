@@ -6,7 +6,7 @@ import { StatCard } from "@/components/stat-card"
 import { AdvanceDialog } from "@/components/advance-dialog"
 import { CancelAdvanceButton, PayAdvanceButton } from "@/components/advance-actions"
 import { listAdvanceDeductions, listAdvances, listStaff, staffDebts } from "@/lib/queries/equipe"
-import { currentMonthKey, formatDate, monthTitle, todayISO } from "@/lib/locale/datetime"
+import { currentMonthKey, formatDate, monthTitle, toISODate, todayISO } from "@/lib/locale/datetime"
 import { formatCurrency } from "@/lib/locale/money"
 import { ADVANCE_STATUS_CLASSES, PAYMENT_METHOD_LABELS, label } from "@/lib/domain"
 import { ADVANCE_STATUS_LABELS } from "@/lib/payroll/calc"
@@ -144,7 +144,7 @@ export default async function ValesPage() {
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         Pedido em {formatDate(vale.requestedOn)}
-                        {vale.paidAt ? ` · pago em ${formatDate(vale.paidAt.toISOString().slice(0, 10))}` : ""}
+                        {vale.paidAt ? ` · pago em ${formatDate(toISODate(vale.paidAt))}` : ""}
                         {vale.paymentMethod ? ` por ${label(PAYMENT_METHOD_LABELS, vale.paymentMethod)}` : ""}
                         {vale.receiptRef ? ` · ${vale.receiptRef}` : ""}
                       </p>

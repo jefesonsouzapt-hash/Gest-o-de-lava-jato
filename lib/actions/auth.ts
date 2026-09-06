@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { isUniqueViolation } from "@/lib/db/errors"
 import { auditLogs, companies, users } from "@/lib/db/schema"
 import { fakeVerify, hashPassword, verifyPassword } from "@/lib/auth/password"
 import { createSession, currentUserAgent, destroySession, purgeExpiredSessions } from "@/lib/auth/session"
@@ -142,7 +143,7 @@ export async function setupFirstCompany(_estado: FormState, formData: FormData):
   } catch (erro) {
     // 23505 = violação de unicidade: o e-mail já existe, ou duas configurações
     // chegaram ao mesmo tempo.
-    if (codigoPostgres(erro) === "23505") {
+    if (isUniqueViolation(erro)) {
       return {
         ok: false,
         errors: { email: "Já existe uma conta com este e-mail." },
@@ -163,13 +164,3 @@ export async function setupFirstCompany(_estado: FormState, formData: FormData):
  * O drizzle embrulha o erro do driver e põe o original em `cause`, por isso o
  * código do Postgres não fica na superfície do que foi lançado.
  */
-function codigoPostgres(erro: unknown): string | null {
-  let atual = erro
-  for (let i = 0; i < 5; i++) {
-    if (typeof atual !== "object" || atual === null) return null
-    const codigo = (atual as { code?: unknown }).code
-    if (typeof codigo === "string") return codigo
-    atual = (atual as { cause?: unknown }).cause
-  }
-  return null
-}

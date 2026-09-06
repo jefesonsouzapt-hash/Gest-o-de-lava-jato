@@ -6,7 +6,7 @@
  * ISS — imposto municipal sobre serviços. A alíquota varia por município,
  * entre 2 % e 5 % por limite constitucional. Lava jato costuma cair em 5 %.
  *
- * Não é IVA nem imposto embutido separado na nota: aqui serve para o dono
+ * Não é imposto embutido separado na nota: aqui serve para o dono
  * saber quanto do faturamento é imposto, não para compor o preço.
  */
 export const ISS_MIN_RATE = 2

@@ -4,7 +4,7 @@ export function Logo({ className, showText = true }: { className?: string; showT
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-        {/* Viatura sob a gota de água. */}
+        {/* Carro sob a gota de água. */}
         <svg
           width="20"
           height="20"
@@ -24,7 +24,7 @@ export function Logo({ className, showText = true }: { className?: string; showT
         </svg>
       </span>
       {/* O texto herda a cor de quem o renderiza: o mesmo logótipo serve na
-          barra lateral escura e no ecrã de entrada, sobre fundo claro. */}
+          barra lateral escura e na tela de entrada, sobre fundo claro. */}
       {showText && (
         <span className="flex flex-col leading-none text-current">
           <span className="text-[15px] font-extrabold tracking-tight">Lava Jato</span>

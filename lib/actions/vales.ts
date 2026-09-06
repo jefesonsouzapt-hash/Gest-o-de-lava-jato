@@ -1,13 +1,16 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
+import { isUniqueViolation } from "@/lib/db/errors"
 import { advanceDeductions, auditLogs, employeeAdvances, staff } from "@/lib/db/schema"
-import { requirePermission } from "@/lib/auth/guard"
+import { tryPermission } from "@/lib/auth/guard"
 import { advancePayoutSchema, advanceSchema, parseForm } from "@/lib/validation/schemas"
 import type { FieldErrors } from "@/lib/validation/schemas"
 import { remainingBalance } from "@/lib/payroll/calc"
+import { parseCurrencyToCents } from "@/lib/locale/money"
+import { atualizarStatusDoVale, totalAbatido } from "@/lib/payroll/advance-status"
 
 export type ActionState = { ok: true } | { ok: false; errors: FieldErrors; values?: Record<string, string> } | null
 
@@ -26,21 +29,14 @@ function revalidarVales() {
   revalidatePath("/folha")
 }
 
-/** Soma das parcelas já descontadas de um vale. */
-async function abatido(advanceId: number): Promise<number> {
-  const [linha] = await db
-    .select({ total: sql<string>`coalesce(sum(${advanceDeductions.amountCents}), 0)` })
-    .from(advanceDeductions)
-    .where(eq(advanceDeductions.advanceId, advanceId))
-  return Number.parseInt(linha?.total ?? "0", 10) || 0
-}
-
 /**
  * Concede um vale. Nasce `pendente`: o dinheiro ainda não saiu, então ainda
  * não é dívida do colaborador.
  */
 export async function createAdvance(_estado: ActionState, formData: FormData): Promise<ActionState> {
-  const actor = await requirePermission("vale.gerir")
+  const portao = await tryPermission("vale.gerir")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const analisado = parseForm(advanceSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors, values: echoValues(formData) }
@@ -93,7 +89,9 @@ export async function createAdvance(_estado: ActionState, formData: FormData): P
  * o saldo devedor do colaborador não muda.
  */
 export async function payAdvance(_estado: ActionState, formData: FormData): Promise<ActionState> {
-  const actor = await requirePermission("vale.gerir")
+  const portao = await tryPermission("vale.gerir")
+  if (!portao.ok) return { ok: false, errors: { _: portao.message } }
+  const actor = portao.actor
 
   const analisado = parseForm(advancePayoutSchema, formData)
   if (!analisado.ok) return { ok: false, errors: analisado.errors, values: echoValues(formData) }
@@ -135,7 +133,9 @@ export async function payAdvance(_estado: ActionState, formData: FormData): Prom
  * numa folha fechada, e desfazer reescreveria um holerite já entregue.
  */
 export async function cancelAdvance(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("vale.gerir")
+  const portao = await tryPermission("vale.gerir")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10)
   if (!Number.isFinite(id)) return { ok: false, error: "Vale inválido." }
@@ -150,7 +150,7 @@ export async function cancelAdvance(formData: FormData): Promise<{ ok: boolean; 
   if (!vale) return { ok: false, error: "Vale não encontrado." }
   if (vale.canceledAt) return { ok: false, error: "Este vale já está cancelado." }
 
-  if ((await abatido(id)) > 0) {
+  if ((await totalAbatido(id)) > 0) {
     return {
       ok: false,
       error: "Este vale já teve parcela descontada em folha e não pode ser cancelado.",
@@ -182,7 +182,9 @@ export async function cancelAdvance(formData: FormData): Promise<{ ok: boolean; 
 export async function registerManualDeduction(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
-  const actor = await requirePermission("vale.gerir")
+  const portao = await tryPermission("vale.gerir")
+  if (!portao.ok) return { ok: false, error: portao.message }
+  const actor = portao.actor
 
   const id = Number.parseInt(String(formData.get("id") ?? ""), 10)
   const competencia = String(formData.get("competenceMonth") ?? "").trim()
@@ -191,7 +193,6 @@ export async function registerManualDeduction(
   if (!Number.isFinite(id)) return { ok: false, error: "Vale inválido." }
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) return { ok: false, error: "Competência inválida." }
 
-  const { parseCurrencyToCents } = await import("@/lib/locale/money")
   const valor = parseCurrencyToCents(valorTexto)
   if (valor <= 0) return { ok: false, error: "Informe um valor maior que zero." }
 
@@ -203,7 +204,7 @@ export async function registerManualDeduction(
   if (!vale) return { ok: false, error: "Vale não encontrado." }
   if (!vale.paidAt) return { ok: false, error: "O vale ainda não foi pago ao colaborador." }
 
-  const jaAbatido = await abatido(id)
+  const jaAbatido = await totalAbatido(id)
   const restante = remainingBalance({ amountCents: vale.amountCents, deductedCents: jaAbatido })
   if (restante === 0) return { ok: false, error: "Este vale já está quitado." }
 
@@ -219,32 +220,17 @@ export async function registerManualDeduction(
       competenceMonth: competencia,
       amountCents: cobrado,
     })
-  } catch {
+  } catch (erro) {
     // Índice único (vale, competência): já há desconto desse vale nesse mês.
-    return { ok: false, error: "Este vale já teve desconto registrado nessa competência." }
+    // Qualquer outro erro sobe: engolir uma falha do banco aqui faria o
+    // usuário acreditar que o desconto já existia quando ele nunca foi gravado.
+    if (isUniqueViolation(erro)) {
+      return { ok: false, error: "Este vale já teve desconto registrado nessa competência." }
+    }
+    throw erro
   }
 
-  await atualizarStatus(id)
+  await atualizarStatusDoVale(id)
   revalidarVales()
   return { ok: true }
-}
-
-/** Recalcula a situação do vale a partir do que já foi abatido. */
-export async function atualizarStatus(advanceId: number): Promise<void> {
-  const [vale] = await db
-    .select({ amountCents: employeeAdvances.amountCents, paidAt: employeeAdvances.paidAt })
-    .from(employeeAdvances)
-    .where(eq(employeeAdvances.id, advanceId))
-    .limit(1)
-  if (!vale) return
-
-  const jaAbatido = await abatido(advanceId)
-  const restante = remainingBalance({ amountCents: vale.amountCents, deductedCents: jaAbatido })
-
-  const status = !vale.paidAt ? "pendente" : restante === 0 ? "quitado" : jaAbatido > 0 ? "parcialmente_abatido" : "pago"
-
-  await db
-    .update(employeeAdvances)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(employeeAdvances.id, advanceId))
 }

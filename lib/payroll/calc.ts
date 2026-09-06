@@ -107,6 +107,33 @@ export function remainingBalance(advance: AdvanceState): number {
   return Math.max(advance.amountCents - advance.deductedCents, 0)
 }
 
+/**
+ * Valor da próxima parcela a descontar de um vale.
+ *
+ * `deductionsCount` é quantas parcelas já saíram em folhas anteriores. Na
+ * **última** parcela cobra-se o saldo devedor inteiro, e não o valor teórico
+ * da divisão: sem isso, R$ 100,00 em 3× cobraria 33,33 três vezes e deixaria
+ * R$ 0,01 pendurado, arrastando o vale para um quarto mês que ninguém
+ * combinou. A parcela também nunca passa do saldo devedor.
+ */
+export function nextInstallmentCents(advance: {
+  amountCents: number
+  installments: number
+  deductedCents: number
+  deductionsCount: number
+}): number {
+  const restante = remainingBalance(advance)
+  if (restante === 0) return 0
+
+  const parcelas = splitInstallments(advance.amountCents, advance.installments)
+  const jaFeitas = Math.max(int(advance.deductionsCount), 0)
+
+  // Última parcela (ou já passou do combinado): fecha a conta.
+  if (jaFeitas >= parcelas.length - 1) return restante
+
+  return Math.min(parcelas[jaFeitas] ?? restante, restante)
+}
+
 export type AdvanceStatus = "pendente" | "pago" | "parcialmente_abatido" | "quitado" | "cancelado"
 
 /**
