@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header"
 import { EmptyState } from "@/components/empty-state"
 import { ServiceDialog } from "@/components/service-dialog"
 import { BayDialog, CategoryDialog } from "@/components/simple-dialog-form"
-import { ServiceActiveButton } from "@/components/service-actions"
+import { ServiceActiveItem } from "@/components/service-actions"
+import { RowActions } from "@/components/row-actions"
 import { formatCurrency, formatBps } from "@/lib/locale/money"
 import { formatDuration } from "@/lib/locale/datetime"
 import { priceForVehicle, type VehicleCategory } from "@/lib/pricing/calc"
@@ -54,7 +55,7 @@ export default async function ServicosPage() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full min-w-[56rem] text-sm">
+          <table className="w-full min-w-[62rem] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground">
                 <th className="px-4 py-3">Serviço</th>
@@ -104,7 +105,7 @@ export default async function ServicosPage() {
                         <td
                           key={cat}
                           className={cn(
-                            "px-3 py-3 text-right tabular-nums",
+                            "px-3 py-3 text-right whitespace-nowrap tabular-nums",
                             // Preço estimado fica mais claro que o preço que o
                             // dono fixou: dá para ver de relance o que ele
                             // decidiu e o que o sistema deduziu.
@@ -116,10 +117,10 @@ export default async function ServicosPage() {
                       )
                     })}
 
-                    <td className="px-3 py-3 text-right text-muted-foreground tabular-nums">
+                    <td className="px-3 py-3 text-right whitespace-nowrap text-muted-foreground tabular-nums">
                       {formatDuration(s.durationMinutes)}
                     </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
+                    <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">
                       {s.commissionBps > 0 ? formatBps(s.commissionBps) : "—"}
                     </td>
 
@@ -130,7 +131,9 @@ export default async function ServicosPage() {
                             servico={s}
                             categorias={categorias.map((c) => ({ id: c.id, name: c.name }))}
                           />
-                          <ServiceActiveButton id={s.id} active={s.active} />
+                          <RowActions label={`Ações de ${s.name}`}>
+                            <ServiceActiveItem id={s.id} active={s.active} />
+                          </RowActions>
                         </div>
                       </td>
                     )}

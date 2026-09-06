@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import { logout } from "@/lib/actions/auth"
 import { Logo } from "@/components/logo"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -176,7 +177,8 @@ export function AppShell({
           </button>
           <h1 className="text-base font-semibold tracking-tight">{titulo}</h1>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Avatar className="size-9 border border-border">

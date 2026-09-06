@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header"
 import { EmptyState } from "@/components/empty-state"
 import { StatCard } from "@/components/stat-card"
 import { MovementDialog, ProductDialog } from "@/components/stock-dialogs"
-import { ProductActiveButton } from "@/components/service-actions"
+import { ProductActiveItem } from "@/components/service-actions"
+import { RowActions } from "@/components/row-actions"
 import { formatCurrency } from "@/lib/locale/money"
 import { formatDateTime } from "@/lib/locale/datetime"
 import { STOCK_MOVEMENT_LABELS, formatQuantity, label } from "@/lib/domain"
@@ -133,7 +134,9 @@ export default async function EstoquePage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <ProductDialog produto={p} />
-                          <ProductActiveButton id={p.id} active={p.active} />
+                          <RowActions label={`Ações de ${p.name}`}>
+                            <ProductActiveItem id={p.id} active={p.active} />
+                          </RowActions>
                         </div>
                       </td>
                     )}

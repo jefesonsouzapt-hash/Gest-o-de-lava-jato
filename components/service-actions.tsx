@@ -1,69 +1,57 @@
 "use client"
 
-import { useTransition } from "react"
-import { toast } from "sonner"
-import { Loader2, Power } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Power, PowerOff } from "lucide-react"
+import { RowActionItem } from "@/components/row-actions"
 import { setServiceActive } from "@/lib/actions/catalogo"
 import { setProductActive } from "@/lib/actions/estoque"
 
-function Alternar({
+/** Item de menu que ativa ou desativa, com o texto certo para cada estado. */
+function AlternarItem({
   id,
   active,
   action,
-  rotuloAtivo,
-  rotuloInativo,
+  aoAtivar,
+  aoDesativar,
 }: {
   id: number
   active: boolean
   action: (formData: FormData) => Promise<{ ok: boolean; error?: string }>
-  rotuloAtivo: string
-  rotuloInativo: string
+  aoAtivar: string
+  aoDesativar: string
 }) {
-  const [pendente, iniciar] = useTransition()
-
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      disabled={pendente}
-      onClick={() =>
-        iniciar(async () => {
-          const dados = new FormData()
-          dados.set("id", String(id))
-          dados.set("active", active ? "0" : "1")
-          const r = await action(dados)
-          if (r.ok) toast.success(active ? rotuloInativo : rotuloAtivo)
-          else toast.error(r.error ?? "Não foi possível alterar.")
-        })
-      }
+    <RowActionItem
+      icon={active ? <PowerOff className="size-4" /> : <Power className="size-4" />}
+      action={action}
+      fields={{ id, active: active ? "0" : "1" }}
+      successMessage={active ? aoDesativar : aoAtivar}
+      destructive={active}
     >
-      {pendente ? <Loader2 className="animate-spin" /> : <Power />}
       {active ? "Desativar" : "Ativar"}
-    </Button>
+    </RowActionItem>
   )
 }
 
-export function ServiceActiveButton({ id, active }: { id: number; active: boolean }) {
+export function ServiceActiveItem({ id, active }: { id: number; active: boolean }) {
   return (
-    <Alternar
+    <AlternarItem
       id={id}
       active={active}
       action={setServiceActive}
-      rotuloAtivo="Serviço reativado."
-      rotuloInativo="Serviço desativado. As ordens antigas continuam intactas."
+      aoAtivar="Serviço reativado."
+      aoDesativar="Serviço desativado. As ordens antigas continuam intactas."
     />
   )
 }
 
-export function ProductActiveButton({ id, active }: { id: number; active: boolean }) {
+export function ProductActiveItem({ id, active }: { id: number; active: boolean }) {
   return (
-    <Alternar
+    <AlternarItem
       id={id}
       active={active}
       action={setProductActive}
-      rotuloAtivo="Produto reativado."
-      rotuloInativo="Produto desativado."
+      aoAtivar="Produto reativado."
+      aoDesativar="Produto desativado."
     />
   )
 }

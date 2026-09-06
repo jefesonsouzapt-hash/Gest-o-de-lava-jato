@@ -29,16 +29,44 @@ export default async function OrdensPage({ searchParams }: { searchParams: Promi
     listWorkOrders(actor.companyId, { date: data, status: ["entregue", "cancelada"] }),
   ])
 
+  // Todas as colunas do fluxo aparecem sempre, mesmo vazias: o quadro é um
+  // mapa do pátio, e uma coluna que some quando esvazia faz o operador
+  // procurar onde está o carro em vez de olhar e ver.
   const colunas = BOARD_COLUMNS.map((status) => ({
     status,
     ordens: abertas.filter((o) => o.status === status),
-  })).filter((c) => c.ordens.length > 0 || c.status === "em_fila" || c.status === "em_lavagem")
+  }))
+
+  const totalNoPatio = abertas.reduce((s, o) => s + o.totalCents, 0)
+  const aReceber = abertas.reduce((s, o) => s + o.dueCents, 0)
 
   return (
     <>
       <PageHeader
         title="Ordens de serviço"
         description="O que está acontecendo no pátio agora, coluna por coluna."
+        action={
+          abertas.length > 0 ? (
+            <div className="flex items-center gap-5 rounded-xl border border-border bg-card px-4 py-2.5">
+              <div>
+                <p className="text-xs text-muted-foreground">No pátio</p>
+                <p className="font-bold tabular-nums">{formatCurrency(totalNoPatio)}</p>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-xs text-muted-foreground">A receber</p>
+                <p
+                  className={cn(
+                    "font-bold tabular-nums",
+                    aReceber > 0 ? "text-warning" : "text-success",
+                  )}
+                >
+                  {formatCurrency(aReceber)}
+                </p>
+              </div>
+            </div>
+          ) : undefined
+        }
       />
 
       {abertas.length === 0 ? (
@@ -53,53 +81,96 @@ export default async function OrdensPage({ searchParams }: { searchParams: Promi
           }
         />
       ) : (
-        <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-3">
+        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-3">
           {colunas.map((coluna) => (
-            <section key={coluna.status} className="flex w-72 shrink-0 flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
+            <section
+              key={coluna.status}
+              className="flex w-64 shrink-0 flex-col gap-2.5 rounded-xl bg-muted/40 p-2.5"
+            >
+              <div className="flex items-center justify-between gap-2 px-1">
                 <h3 className="text-sm font-semibold">{label(WORK_ORDER_STATUS_LABELS, coluna.status)}</h3>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-semibold",
+                    coluna.ordens.length > 0
+                      ? "bg-primary/12 text-primary"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
                   {coluna.ordens.length}
                 </span>
               </div>
 
               {coluna.ordens.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                <p className="rounded-lg border border-dashed border-border/70 px-3 py-8 text-center text-xs text-muted-foreground">
                   Vazio
                 </p>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {coluna.ordens.map((o) => (
-                    <li key={o.id} className="rounded-xl border border-border bg-card p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <Link href={`/ordens/${o.id}`} className="font-mono text-sm font-semibold hover:underline">
-                          {o.plate}
-                        </Link>
-                        <span className="shrink-0 text-xs text-muted-foreground">{o.reference}</span>
-                      </div>
+                  {coluna.ordens.map((o) => {
+                    // Carro parado há muito tempo na mesma coluna é o que o
+                    // operador precisa ver primeiro — e é o que a fila esconde.
+                    const parado = minutesSince(o.startedAt ?? o.arrivedAt ?? new Date())
+                    const demorado = parado >= 90
 
-                      <p className="mt-1 truncate text-xs text-muted-foreground">{o.customerName}</p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {o.bayName ?? "Sem pista"}
-                        {o.staffName && ` · ${o.staffName}`}
-                      </p>
-
-                      <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
-                        <span className="text-sm font-bold tabular-nums">{formatCurrency(o.totalCents)}</span>
-                        {o.startedAt && (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {formatDuration(minutesSince(o.startedAt))}
-                          </span>
+                    return (
+                      <li
+                        key={o.id}
+                        className={cn(
+                          "rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md",
+                          demorado ? "border-warning/50" : "border-border",
                         )}
-                      </div>
-
-                      {podeAvancar && (
-                        <div className="mt-2">
-                          <AdvanceButton orderId={o.id} status={o.status} full />
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            href={`/ordens/${o.id}`}
+                            className="font-mono text-sm font-semibold hover:underline"
+                          >
+                            {o.plate}
+                          </Link>
+                          <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                            {o.reference}
+                          </span>
                         </div>
-                      )}
-                    </li>
-                  ))}
+
+                        <p className="mt-1 truncate text-xs text-muted-foreground">{o.customerName}</p>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-1">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                            {o.bayName ?? "Sem pista"}
+                          </span>
+                          {o.staffName && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                              {o.staffName}
+                            </span>
+                          )}
+                          {o.dueCents === 0 && o.totalCents > 0 && (
+                            <span className="rounded bg-success/12 px-1.5 py-0.5 text-[11px] font-medium text-success">
+                              Pago
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2">
+                          <span className="text-sm font-bold tabular-nums">{formatCurrency(o.totalCents)}</span>
+                          <span
+                            className={cn(
+                              "text-xs tabular-nums",
+                              demorado ? "font-semibold text-warning" : "text-muted-foreground",
+                            )}
+                          >
+                            {formatDuration(parado)}
+                          </span>
+                        </div>
+
+                        {podeAvancar && (
+                          <div className="mt-2">
+                            <AdvanceButton orderId={o.id} status={o.status} full />
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </section>
