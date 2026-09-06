@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificação de tipos
+        run: pnpm typecheck
+
+      - name: Testes unitários
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+        env:
+          # O build não liga à base de dados; a variável só precisa de existir.
+          DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder

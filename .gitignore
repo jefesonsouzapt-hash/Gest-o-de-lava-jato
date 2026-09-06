@@ -1,0 +1,18 @@
+# Variáveis de ambiente
+.env*.local
+
+# Dependências e build
+node_modules
+.next/
+.vercel/
+
+# Testes
+test-results/
+playwright-report/
+coverage/
+
+# Cache do TypeScript
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
